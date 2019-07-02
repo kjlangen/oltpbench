@@ -137,9 +137,6 @@ public class UpdatePage extends Procedure {
 	                                 int userId, String userIp, String userText,
 	                                 int revisionId, String revComment, int revMinorEdit, int termId) throws SQLException {
 
-	    LOG.info(String.format("Here in UpdatePage!"));
-		RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
-
 	    boolean adv;
 	    PreparedStatement ps = null;
 	    ResultSet rs = null;
@@ -147,101 +144,158 @@ public class UpdatePage extends Procedure {
 	    final String timestamp = TimeUtil.getCurrentTimeString14();
 	    
 	    // INSERT NEW TEXT
-		ps = this.getPreparedStatementReturnKeys(conn, insertText, new int[]{1});
-		param = 1;
-		ps.setInt(param++, pageId);
-		ps.setString(param++, pageText);
-		ps.setString(param++, "utf-8");  //This is an error
-//		ps.execute();
-		execute(conn, ps);
+
+		StringBuilder sb = new StringBuilder();
+		sb.append( "INSERT INTO " );
+		sb.append( WikipediaConstants.TABLENAME_TEXT );
+		sb.append( " ( old_page, old_text, old_flags ) VALUES ( " );
+		sb.append( pageId );
+		sb.append( ", " );
+		sb.append( pageText );
+		sb.append( ", 'utf-8' )" );
+
+		RestQuery.restOtherQuery( sb.toString(), id );
 		
-		rs = ps.getGeneratedKeys();
-		adv = rs.next();
-		assert(adv) : "Problem inserting new tuples in table text";
-		int nextTextId = rs.getInt(1);
-		rs.close();
-		assert(nextTextId >= 0) : "Invalid nextTextId (" + nextTextId + ")";
+		// FIXME
+		// We need to get the latest ID. Because we don't really respect transactions,
+		// the latest ID might not actually be us. This isn't ideal because we will try
+		// to insert a new revision for the same page.
 
-		// INSERT NEW REVISION
-		ps = this.getPreparedStatementReturnKeys(conn, insertRevision, new int[]{1});
-		param = 1;
-		ps.setInt(param++, pageId);       // rev_page
-		ps.setInt(param++, nextTextId);   // rev_text_id
-		ps.setString(param++, revComment);// rev_comment
-		ps.setInt(param++, revMinorEdit); // rev_minor_edit // this is an error
-		ps.setInt(param++, userId);       // rev_user
-		ps.setString(param++, userText);  // rev_user_text
-		ps.setString(param++, timestamp); // rev_timestamp
-		ps.setInt(param++, 0);            // rev_deleted //this is an error
-		ps.setInt(param++, pageText.length()); // rev_len
-		ps.setInt(param++, revisionId);   // rev_parent_id // this is an error
-//	    ps.execute();
-		execute(conn, ps);
+		sb = new StringBuilder();
+		sb.append(  "SELECT MAX(old_id) AS mid FROM " );
+		sb.append( WikipediaConstants.TABLENAME_TEXT );
+
+		List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		int nextTextId = (Integer) resultSet.get( 0 ).get( "mid" );
 		
-		rs = ps.getGeneratedKeys();
-		adv = rs.next();
-		int nextRevId = rs.getInt(1);
-		rs.close();
-		assert(nextRevId >= 0) : "Invalid nextRevID (" + nextRevId + ")";
+		sb = new StringBuilder();
+		sb.append( "INSERT INTO " );
+		sb.append( WikipediaConstants.TABLENAME_REVISION );
+		sb.append( " ( rev_page, " );
+		sb.append( "rev_text_id, " );
+		sb.append( "rev_comment, " );
+		sb.append( "rev_minor_edit, " );
+		sb.append( "rev_user, " );
+        sb.append( "rev_user_text, " );
+        sb.append( "rev_timestamp, " );
+        sb.append( "rev_deleted, " );
+        sb.append( "rev_len, " );
+        sb.append( "rev_parent_id " );
+		sb.append( ") VALUES ( " );
+        sb.append( pageId );
+		sb.append( ", " );
+		sb.append( nextTextId );
+		sb.append( ", " );
+		sb.append( revComment );
+		sb.append( ", " );
+		sb.append( revMinorEdit );
+		sb.append( ", " );
+		sb.append( userId );
+		sb.append( ", " );
+		sb.append( userText );
+		sb.append( ", " );
+		sb.append( timestamp );
+		sb.append( ", 0, " );
+		sb.append( pageText.length() );
+		sb.append( ", " );
+		sb.append( revisionId );
+		sb.append( ") " );
 
-		// I'm removing AND page_latest = "+a.revisionId+" from the query, since
-		// it creates sometimes problem with the data, and page_id is a PK
-		// anyway
-		ps = this.getPreparedStatement(conn, updatePage);
-		param = 1;
-		ps.setInt(param++, nextRevId);
-		ps.setString(param++, timestamp);
-		ps.setInt(param++, pageText.length());
-		ps.setInt(param++, pageId);
-//		int numUpdatePages = ps.executeUpdate();
-//		assert(numUpdatePages == 1) : "WE ARE NOT UPDATING the page table!";
-		execute(conn, ps);
+		RestQuery.restOtherQuery( sb.toString(), id );
+		
+		//FIXME: see notes above
+		sb = new StringBuilder( "SELECT MAX(rev_id) AS mid FROM " );
+		sb.append( WikipediaConstants.TABLENAME_REVISION );
 
-		// REMOVED
-		// sql="DELETE FROM `redirect` WHERE rd_from = '"+a.pageId+"';";
-		// st.addBatch(sql);
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		int nextRevId = (Integer) resultSet.get( 0 ).get( "rev_id" );
 
-		ps = this.getPreparedStatement(conn, insertRecentChanges);
-		param = 1;
-		ps.setString(param++, timestamp);     // rc_timestamp
-		ps.setString(param++, timestamp);     // rc_cur_time
-		ps.setInt(param++, pageNamespace);    // rc_namespace
-		ps.setString(param++, pageTitle);     // rc_title
-		ps.setInt(param++, 0);                // rc_type
-		ps.setInt(param++, 0);                // rc_minor
-		ps.setInt(param++, pageId);           // rc_cur_id
-		ps.setInt(param++, userId);           // rc_user
-		ps.setString(param++, userText);      // rc_user_text
-		ps.setString(param++, revComment);    // rc_comment
-		ps.setInt(param++, nextTextId);       // rc_this_oldid
-		ps.setInt(param++, textId);           // rc_last_oldid
-		ps.setInt(param++, 0);                // rc_bot
-		ps.setInt(param++, 0);                // rc_moved_to_ns
-		ps.setString(param++, "");            // rc_moved_to_title
-		ps.setString(param++, userIp);        // rc_ip
-		ps.setInt(param++, pageText.length());// rc_old_len
-        ps.setInt(param++, pageText.length());// rc_new_len
-//		int count = ps.executeUpdate();
-//		assert(count == 1);
-        execute(conn, ps);
-        
-		// REMOVED
+		sb = new StringBuilder();
+		sb.append( "UPDATE " );
+		sb.append( WikipediaConstants.TABLENAME_PAGE );
+		sb.append( " SET page_latest = " );
+		sb.append( nextRevId );
+		sb.append( ", page_touched =  " );
+		sb.append( timestamp );
+		sb.append( ", page_is_new = 0, page_is_redirect = 0, page_len = " );
+		sb.append( pageText.length() );
+		sb.append( " WHERE page_id = " );
+		sb.append( pageId );
+
+		RestQuery.restOtherQuery( sb.toString(), id );
+
+		sb = new StringBuilder();
+		sb.append( "INSERT INTO "  );
+		sb.append( WikipediaConstants.TABLENAME_RECENTCHANGES );
+	    sb.append( "rc_timestamp, " );
+	    sb.append( "rc_cur_time, " );
+	    sb.append( "rc_namespace, " );
+	    sb.append( "rc_title, " );
+	    sb.append( "rc_type, " );
+        sb.append( "rc_minor, " );
+        sb.append( "rc_cur_id, " );
+        sb.append( "rc_user, " );
+        sb.append( "rc_user_text, " );
+        sb.append( "rc_comment, " );
+        sb.append( "rc_this_oldid, " );
+	    sb.append( "rc_last_oldid, " );
+	    sb.append( "rc_bot, " );
+	    sb.append( "rc_moved_to_ns, " );
+	    sb.append( "rc_moved_to_title, " );
+	    sb.append( "rc_ip, " );
+        sb.append( "rc_old_len, " );
+        sb.append( "rc_new_len " );
+        sb.append( ") VALUES (" );
+		sb.append( timestamp );
+		sb.append( ", " );
+		sb.append( timestamp );
+		sb.append( ", " );
+		sb.append( pageNamespace );
+		sb.append( ", " );
+		sb.append( pageTitle );
+		sb.append( ", 0, 0, " );
+		sb.append( pageId );
+		sb.append( ", " );
+		sb.append( userId );
+		sb.append( ", " );
+		sb.append( userText );
+		sb.append( ", " );
+		sb.append( revComment );
+		sb.append( ", " );
+		sb.append( nextTextId );
+		sb.append( ", " );
+		sb.append( textId );
+		sb.append( ", 0, 0, '', " );
+		sb.append( userId );
+		sb.append( ", " );
+		sb.append( pageText.length() );
+		sb.append( pageText.length() );
+		sb.append( " ) " );
+		RestQuery.restOtherQuery( sb.toString(), id );
+
 		// sql="INSERT INTO `cu_changes` () VALUES ();";
 		// st.addBatch(sql);
 
 		// SELECT WATCHING USERS
-		ps = this.getPreparedStatement(conn, selectWatchList);
-		param = 1;
-		ps.setString(param++, pageTitle);
-		ps.setInt(param++, pageNamespace);
-		ps.setInt(param++, userId);
-		rs = ps.executeQuery();
+
+		sb = new StringBuilder();
+		sb.append( "SELECT wl_user FROM " );
+		sb.append( WikipediaConstants.TABLENAME_WATCHLIST )
+		sb.append( " WHERE wl_title = " ); 
+		sb.append( pageTitle );
+		sb.append( " AND wl_namespace = " );
+		sb.append( pageNamespace );
+		sb.append( " AND wl_user != " );
+		sb.append( userId );
+		sb.append( " AND wl_notificationtimestamp IS NULL" );
+
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
 
 		ArrayList<Integer> wlUser = new ArrayList<Integer>();
-		while (rs.next()) {
-			wlUser.add(rs.getInt(1));
+		while( rowIter.hasNext() ) {
+			wlUser.add( (Integer) rowIter.next().get( "wl_user" ) );
 		}
-		rs.close();
 
 		// =====================================================================
 		// UPDATING WATCHLIST: txn3 (not always, only if someone is watching the
@@ -249,71 +303,79 @@ public class UpdatePage extends Procedure {
 		// =====================================================================
 		if (wlUser.isEmpty() == false) {
 
-			// NOTE: this commit is skipped if none is watching the page, and
-			// the transaction merge with the following one
-			conn.commit();
+			for( Integer user : wlUser ) {
+				sb = new StringBuilder();
+				sb.append( "UPDATE " );
+				sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+				sb.append( " SET wl_notificationtimestamp = " );
+				sb.append( timestamp );
+				sb.append( " WHERE wl_title = " );
+				sb.append( pageTitle );
+				sb.append( " AND wl_namespace = " );
+				sb.append( pageNamespace );	
+				sb.append( " AND wl_user = " );
+				sb.append( user );
 
-			ps = this.getPreparedStatement(conn, updateWatchList);
-			param = 1;
-			ps.setString(param++, timestamp);
-			ps.setString(param++, pageTitle);
-			ps.setInt(param++, pageNamespace);
-			for (Integer otherUserId : wlUser) {
-				ps.setInt(param, otherUserId.intValue());
-				ps.addBatch();
-			} // FOR
-//			ps.executeUpdate(); // This is an error
-//			ps.executeBatch();
-			executeBatch(conn, ps);
-
-			// NOTE: this commit is skipped if none is watching the page, and
-			// the transaction merge with the following one
-			conn.commit();
-
+				RestQuery.restOtherQuery( sb.toString(), id );
+			}
+        	
 			// ===================================================================== 
 			// UPDATING USER AND LOGGING STUFF: txn4 (might still be part of
 			// txn2)
 			// =====================================================================
 
-			// This seems to be executed only if the page is watched, and once
-			// for each "watcher"
-			ps = this.getPreparedStatement(conn, selectUser);
-            param = 1;
-			for (Integer otherUserId : wlUser) {
-				ps.setInt(param, otherUserId.intValue());
-				rs = ps.executeQuery();
-				rs.next();
-				rs.close();
-			} // FOR
+			for( Integer user : wlUser ) {
+				sb = new StringBuilder();
+				sb.append( "SELECT * FROM " );
+				sb.append( WikipediaConstants.TABLENAME_USER );
+				sb.append( " WHERE user_id = "  );
+				sb.append( user );
+				RestQuery.restReadQuery( sb.toString(), id );
+			}
 		}
 
 		// This is always executed, sometimes as a separate transaction,
 		// sometimes together with the previous one
 		
-		ps = this.getPreparedStatement(conn, insertLogging);
-		param = 1;
-		ps.setString(param++, timestamp);
-		ps.setInt(param++, userId);
-		ps.setString(param++, pageTitle);
-		ps.setInt(param++, pageNamespace);
-		ps.setString(param++, userText);
-		ps.setInt(param++, pageId);
-		ps.setString(param++, String.format("%d\n%d\n%d", nextRevId, revisionId, 1));
-//		ps.executeUpdate();
-		execute(conn, ps);
 
-		ps = this.getPreparedStatement(conn, updateUserEdit);
-		param = 1;
-		ps.setInt(param++, userId);
-//		ps.executeUpdate();
-		execute(conn, ps);
+		sb = new StringBuilder();
+		sb.append( "INSERT INTO " );
+		sb.append( WikipediaConstants.TABLENAME_LOGGING );
+		sb.append( " ( " );
+		sb.append( "log_type, log_action, log_timestamp, log_user, log_user_text, " );
+		sb.append( "log_namespace, log_title, log_page, log_comment, log_params ) VALUES ( ";
+		sb.append( "'patrol', 'patrol', " );
+		sb.append( timestamp );
+		sb.append( ", " );
+		sb.append( userId );
+		sb.append( ", " );
+		sb.append( pageTitle );
+		sb.append( ", " );
+		sb.append( pageNamespace );
+		sb.append( ", " );
+		sb.append( userText );
+		sb.append( ", " );
+		sb.append( pageId );
+		sb.append( ", " );
+		sb.append( String.format("%d\n%d\n%d", nextRevId, revisionId, 1));
+		sb.append( " )" );
+		RestQuery.restOtherQuery( sb.toString(), id );
+
+		sb = new StringBuilder();
+		sb.append( "UPDATE " );
+		sb.append( WikipediaConstants.TABLENAME_USER );
+		sb.append( " SET user_editcount=user_editcount+1 WHERE user_id = " );
+		sb.append( userId );
+		RestQuery.restOtherQuery( sb.toString(), id );
 		
-		ps = this.getPreparedStatement(conn, updateUserTouched);
-		param = 1;
-		ps.setString(param++, timestamp);
-		ps.setInt(param++, userId);
-//		ps.executeUpdate();	    		
-		execute(conn, ps);
+		sb = new StringBuilder();
+		sb.append( "UPDATE " );
+		sb.append( WikipediaConstants.TABLENAME_USER );
+		sb.append( " SET user_touched = "  );
+		sb.append( timestamp );
+		sb.append( "WHERE user_id = " );
+		sb.append( userId );
+		RestQuery.restOtherQuery( sb.toString(), id );
 	}	
 	
 	public void execute(Connection conn, PreparedStatement p) throws SQLException{
