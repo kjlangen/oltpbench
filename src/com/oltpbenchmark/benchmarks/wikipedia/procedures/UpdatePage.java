@@ -135,10 +135,10 @@ public class UpdatePage extends Procedure {
 	public void run(Connection conn, int textId, int pageId,
 	                                 String pageTitle, String pageText, int pageNamespace,
 	                                 int userId, String userIp, String userText,
-	                                 int revisionId, String revComment, int revMinorEdit) throws SQLException {
+	                                 int revisionId, String revComment, int revMinorEdit, int termId) throws SQLException {
 
 	    LOG.info(String.format("Here in UpdatePage!"));
-		RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
+		RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
 
 	    boolean adv;
 	    PreparedStatement ps = null;

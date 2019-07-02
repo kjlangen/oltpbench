@@ -72,7 +72,7 @@ public class GetPageAnonymous extends Procedure {
     // -----------------------------------------------------------------
 	
 	public Article run(Connection conn, boolean forSelect, String userIp,
-			                            int pageNamespace, String pageTitle) throws UserAbortException, SQLException {
+			                            int pageNamespace, String pageTitle, int id) throws UserAbortException, SQLException {
         int param = 1;
 
 		StringBuilder sb = new StringBuilder();

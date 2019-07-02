@@ -5,6 +5,7 @@
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
     <DBUrl>jdbc:postgresql://35.164.186.20:5432/wiki</DBUrl>
+    <DBRestHost>0.0.0.0</DBRestHost>
     <DBName>wikipedia</DBName>
     <username>kronos</username>
     <password>kronos</password>

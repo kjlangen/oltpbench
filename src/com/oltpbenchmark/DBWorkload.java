@@ -213,6 +213,7 @@ public class DBWorkload {
             wrkld.setDBType(DatabaseType.get(xmlConfig.getString("dbtype")));
             wrkld.setDBDriver(xmlConfig.getString("driver"));
             wrkld.setDBConnection(xmlConfig.getString("DBUrl"));
+            wrkld.setDBRestHost(xmlConfig.getString("DBRestHost"));
             wrkld.setDBName(xmlConfig.getString("DBName"));
             wrkld.setDBUsername(xmlConfig.getString("username"));
             wrkld.setDBPassword(xmlConfig.getString("password"));

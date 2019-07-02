@@ -44,6 +44,7 @@ public class WorkloadConfiguration {
     }
 
     private String db_connection;
+    private String db_restHost;
 	private String db_name;
 	private String db_username;
 	private String db_password;
@@ -98,6 +99,14 @@ public class WorkloadConfiguration {
 	
 	public DatabaseType getDBType() {
         return db_type;
+    }
+
+    public void setDBRestHost(String host) {
+		this.db_restHost = host;
+    }
+
+    public String getDBRestHost() {
+		return this.db_restHost;
     }
 	
 	public void setDBConnection(String database) {

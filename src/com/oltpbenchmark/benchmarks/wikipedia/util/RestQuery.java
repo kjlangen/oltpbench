@@ -39,12 +39,18 @@ import org.apache.log4j.Logger;
 public class RestQuery
 {
 	private static final Logger LOG = Logger.getLogger(RestQuery.class);
+	private static String hostname = "0.0.0.0";
+
+	public static void setHostname(String host)
+	{
+		hostname = host;
+	}
 
 	public static List<Map<String, Object>> restReadQuery(String queryString, int clientId)
 	{
 		// Make a new client pointing at Apollo/the rest service
 		Client client = new Client();
-		String target = "http://3.91.230.74:8080/kronos/rest/query/" + clientId;
+		String target = "http://" + hostname + ":8080/kronos/rest/query/" + clientId;
         WebResource resource = client.resource(target);
 
         // Make the post query

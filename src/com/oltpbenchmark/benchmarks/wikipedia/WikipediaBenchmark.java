@@ -30,6 +30,7 @@ import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.wikipedia.data.RevisionHistograms;
 import com.oltpbenchmark.benchmarks.wikipedia.procedures.AddWatchList;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.util.RandomDistribution.FlatHistogram;
 import com.oltpbenchmark.util.TextGenerator;
 
@@ -50,6 +51,8 @@ public class WikipediaBenchmark extends BenchmarkModule {
         for (int i = 0; i < this.revisionDeltas.length; i++) {
             this.revisionDeltas[i] = new FlatHistogram<Integer>(this.rng(), RevisionHistograms.REVISION_DELTAS[i]);
         } // FOR
+
+        RestQuery.setHostname(workConf.getDBRestHost());
     }
 
     /**

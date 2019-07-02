@@ -78,9 +78,9 @@ public class GetPageAuthenticated extends Procedure {
     // RUN
     // -----------------------------------------------------------------
 	
-    public Article run(Connection conn, boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle) throws SQLException {
+    public Article run(Connection conn, boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle, int termId) throws SQLException {
         LOG.info(String.format("Here in GetPageAuthenticated!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
+        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
 
         // =======================================================
         // LOADING BASIC DATA: txn1

@@ -133,25 +133,25 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
     public Article getPageAnonymous(boolean forSelect, String userIp, int nameSpace, String pageTitle) throws SQLException {
         GetPageAnonymous proc = this.getProcedure(GetPageAnonymous.class);
         assert (proc != null);
-        return proc.run(this.conn, forSelect, userIp, nameSpace, pageTitle);
+        return proc.run(this.conn, forSelect, userIp, nameSpace, pageTitle, this.getId());
     }
 
     public Article getPageAuthenticated(boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle) throws SQLException {
         GetPageAuthenticated proc = this.getProcedure(GetPageAuthenticated.class);
         assert (proc != null);
-        return proc.run(this.conn, forSelect, userIp, userId, nameSpace, pageTitle);
+        return proc.run(this.conn, forSelect, userIp, userId, nameSpace, pageTitle, this.getId());
     }
 
     public void addToWatchlist(int userId, int nameSpace, String pageTitle) throws SQLException {
         AddWatchList proc = this.getProcedure(AddWatchList.class);
         assert (proc != null);
-        proc.run(this.conn, userId, nameSpace, pageTitle);
+        proc.run(this.conn, userId, nameSpace, pageTitle, this.getId());
     }
 
     public void removeFromWatchlist(int userId, int nameSpace, String pageTitle) throws SQLException {
         RemoveWatchList proc = this.getProcedure(RemoveWatchList.class);
         assert (proc != null);
-        proc.run(this.conn, userId, nameSpace, pageTitle);
+        proc.run(this.conn, userId, nameSpace, pageTitle, this.getId());
     }
 
     public void updatePage(String userIp, int userId, int nameSpace, String pageTitle) throws SQLException {
@@ -179,7 +179,7 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
         UpdatePage proc = this.getProcedure(UpdatePage.class);
         assert (proc != null);
 
-        proc.run(this.conn, a.textId, a.pageId, pageTitle, new String(newText), nameSpace, userId, userIp, a.userText, a.revisionId, revComment, revMinorEdit);
+        proc.run(this.conn, a.textId, a.pageId, pageTitle, new String(newText), nameSpace, userId, userIp, a.userText, a.revisionId, revComment, revMinorEdit, this.getId());
         //
         // boolean successful = false;
         // while (!successful) {
