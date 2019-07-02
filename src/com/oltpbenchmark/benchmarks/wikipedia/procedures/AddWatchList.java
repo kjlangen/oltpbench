@@ -58,58 +58,38 @@ public class AddWatchList extends Procedure {
     public void run(Connection conn, int userId, int nameSpace, String pageTitle, int id) throws SQLException {
 
         if (userId > 0) {
-		    // TODO: find a way to by pass Unique constraints in SQL server (Replace, Merge ..?)
-		    // Here I am simply catching the right excpetion and move on.
-		    try
-		    {
+			StringBuilder sb = new StringBuilder();
+			sb.append( "INSERT INTO " );
+			sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+			sb.append(  "( wl_user, wl_namespace, wl_title, wl_notificationtimestamp )" );
+			sb.append( "VALUES( " );
+			sb.append( userId );
+			sb.append( ", " );
+			sb.append( nameSpace );
+			sb.append( ", " );
+			sb.append( pageTitle );
+			sb.append( ", NULL )" );
+			RestQuery.restOtherQuery( sb.toString(), id );
 
-				StringBuilder sb = new StringBuilder();
+			if (nameSpace == 0)
+			{
+				// if regular page, also add a line of
+				// watchlist for the corresponding talk page
+				sb = new StringBuilder();
 				sb.append( "INSERT INTO " );
 				sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
 				sb.append(  "( wl_user, wl_namespace, wl_title, wl_notificationtimestamp )" );
 				sb.append( "VALUES( " );
 				sb.append( userId );
 				sb.append( ", " );
-				sb.append( nameSpace );
+				sb.append( 1 );
 				sb.append( ", " );
 				sb.append( pageTitle );
 				sb.append( ", NULL )" );
 				RestQuery.restOtherQuery( sb.toString(), id );
-		    }
-		    catch (SQLException ex) {
-                if (ex.getErrorCode() != 2627 || !ex.getSQLState().equals("23000"))
-                    throw new RuntimeException("Unique Key Problem in this DBMS");
-            }
-		
-			if (nameSpace == 0) 
-			{ 
-
-
-		        try
-		        {
-    				// if regular page, also add a line of
-    				// watchlist for the corresponding talk page
-					StringBuilder sb = new StringBuilder();
-					sb.append( "INSERT INTO " );
-					sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
-					sb.append(  "( wl_user, wl_namespace, wl_title, wl_notificationtimestamp )" );
-					sb.append( "VALUES( " );
-					sb.append( userId );
-					sb.append( ", " );
-					sb.append( 1 );
-					sb.append( ", " );
-					sb.append( pageTitle );
-					sb.append( ", NULL )" );
-					RestQuery.restOtherQuery( sb.toString(), id );
-
-		        }
-	            catch (SQLException ex) {
-	                if (ex.getErrorCode() != 2627 || !ex.getSQLState().equals("23000"))
-	                    throw new RuntimeException("Unique Key Problem in this DBMS");
-	            }
 			}
 
-			StringBuilder sb = new StringBuilder();
+			sb = new StringBuilder();
 			sb.append( "UPDATE " );
 			sb.append( WikipediaConstants.TABLENAME_USER );
 			sb.append( " SET user_touched = " );

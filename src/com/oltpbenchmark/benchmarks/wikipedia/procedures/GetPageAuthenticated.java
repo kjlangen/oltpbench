@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.List;
+import java.util.Iterator;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
@@ -78,9 +79,7 @@ public class GetPageAuthenticated extends Procedure {
     // RUN
     // -----------------------------------------------------------------
 	
-    public Article run(Connection conn, boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle, int termId) throws SQLException {
-        LOG.info(String.format("Here in GetPageAuthenticated!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
+    public Article run(Connection conn, boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle, int id) throws SQLException {
 
         // =======================================================
         // LOADING BASIC DATA: txn1
@@ -125,7 +124,7 @@ public class GetPageAuthenticated extends Procedure {
         }
 
 		StringBuilder sb = new StringBuilder();
-		sb.append( "SELECT * FROM " )
+		sb.append( "SELECT * FROM " );
 		sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( " WHERE page_namespace = " );
 		sb.append( nameSpace );
@@ -189,7 +188,7 @@ public class GetPageAuthenticated extends Procedure {
 
 		row = resultSet.get( 0 );
         int revisionId = (Integer) row.get("rev_id");
-        int textId = (Integer) row.getInt("rev_text_id");
+        int textId = (Integer) row.get("rev_text_id");
 
         // NOTE: the following is our variation of wikipedia... the original did
         // not contain old_page column!
