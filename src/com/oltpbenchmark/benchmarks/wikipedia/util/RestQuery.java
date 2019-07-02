@@ -36,10 +36,12 @@ import org.codehaus.jackson.type.TypeReference;
 
 import org.apache.log4j.Logger;
 
-public class RestQuery {
-	private static final Logger LOG = Logger.getLogger( RestQuery.class );
+public class RestQuery
+{
+	private static final Logger LOG = Logger.getLogger(RestQuery.class);
 
-	public static List<Map<String, Object>> restQuery( String queryString, int clientId ) {
+	public static List<Map<String, Object>> restReadQuery(String queryString, int clientId)
+	{
 		// Make a new client pointing at Apollo/the rest service
 		Client client = new Client();
 		String target = "http://3.91.230.74:8080/kronos/rest/query/" + clientId;
@@ -57,6 +59,34 @@ public class RestQuery {
         try
         {
 			data = mapper.readValue(response, new TypeReference<List<Map<String, Object>>>(){});
+		}
+		catch (Exception e)
+		{
+			LOG.error(String.format( "IOException caught, message: {}", e.getMessage()));
+		}
+
+		return data;
+	}
+
+	public static int restOtherQuery(String queryString, int clientId)
+	{
+		// Make a new client pointing at Apollo/the rest service
+		Client client = new Client();
+		String target = "http://3.91.230.74:8080/kronos/rest/query/" + clientId;
+        WebResource resource = client.resource(target);
+
+        // Make the post query
+        LOG.info(String.format("Here in restQuery before response."));
+        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, queryString);
+        LOG.info(String.format("Here in restQuery after response."));
+        LOG.info(String.format("Response was: %s", response));
+        
+        // Deparse the result
+        ObjectMapper mapper = new ObjectMapper();
+        int data = -1;
+        try
+        {
+			data = mapper.readValue(response, Integer.class);
 		}
 		catch (Exception e)
 		{

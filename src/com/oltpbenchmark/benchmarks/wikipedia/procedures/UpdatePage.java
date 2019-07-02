@@ -138,7 +138,7 @@ public class UpdatePage extends Procedure {
 	                                 int revisionId, String revComment, int revMinorEdit) throws SQLException {
 
 	    LOG.info(String.format("Here in UpdatePage!"));
-		RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
+		RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
 
 	    boolean adv;
 	    PreparedStatement ps = null;

@@ -47,7 +47,7 @@ public class RemoveWatchList extends Procedure {
 
     public void run(Connection conn, int userId, int nameSpace, String pageTitle) throws SQLException {
         LOG.info(String.format("Here in RemoveWatchList!"));
-        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
+        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
 
         if (userId > 0) {
             PreparedStatement ps = this.getPreparedStatement(conn, removeWatchList);

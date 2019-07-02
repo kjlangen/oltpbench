@@ -74,7 +74,7 @@ public class GetPageAnonymous extends Procedure {
 	public Article run(Connection conn, boolean forSelect, String userIp,
 			                            int pageNamespace, String pageTitle) throws UserAbortException, SQLException {
         LOG.info(String.format("Here in GetPageAnonymous!"));
-        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", 0);
+        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", 0);
 
         int param = 1;
 	    
