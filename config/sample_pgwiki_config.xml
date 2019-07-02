@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://35.164.186.20:5432/wiki</DBUrl>
-    <DBRestHost>0.0.0.0</DBRestHost>
+    <DBUrl>jdbc:postgresql://34.213.148.253:5432/wiki</DBUrl>
+    <DBRestHost>18.205.156.81</DBRestHost>
     <DBName>wikipedia</DBName>
     <username>kronos</username>
     <password>kronos</password>

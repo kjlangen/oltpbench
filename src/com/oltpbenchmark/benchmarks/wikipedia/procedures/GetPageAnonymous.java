@@ -129,7 +129,7 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( ", " );
 		sb.append( WikipediaConstants.TABLENAME_REVISION );
-		sb.append( "WHERE page_id = rev_page " );
+		sb.append( " WHERE page_id = rev_page " );
 		sb.append( "AND rev_page = ");
 		sb.append( pageId );
 		sb.append( " AMD page_id = ");

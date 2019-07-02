@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
+import java.util.Iterator;
 
 //import ch.ethz.ssh2.log.Logger;
 
@@ -135,7 +136,7 @@ public class UpdatePage extends Procedure {
 	public void run(Connection conn, int textId, int pageId,
 	                                 String pageTitle, String pageText, int pageNamespace,
 	                                 int userId, String userIp, String userText,
-	                                 int revisionId, String revComment, int revMinorEdit, int termId) throws SQLException {
+	                                 int revisionId, String revComment, int revMinorEdit, int id) throws SQLException {
 
 	    boolean adv;
 	    PreparedStatement ps = null;
@@ -280,7 +281,7 @@ public class UpdatePage extends Procedure {
 
 		sb = new StringBuilder();
 		sb.append( "SELECT wl_user FROM " );
-		sb.append( WikipediaConstants.TABLENAME_WATCHLIST )
+		sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
 		sb.append( " WHERE wl_title = " ); 
 		sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 		sb.append( " AND wl_namespace = " );
@@ -343,7 +344,7 @@ public class UpdatePage extends Procedure {
 		sb.append( WikipediaConstants.TABLENAME_LOGGING );
 		sb.append( " ( " );
 		sb.append( "log_type, log_action, log_timestamp, log_user, log_user_text, " );
-		sb.append( "log_namespace, log_title, log_page, log_comment, log_params ) VALUES ( ";
+		sb.append( "log_namespace, log_title, log_page, log_comment, log_params ) VALUES ( " );
 		sb.append( "'patrol', 'patrol', " );
 		sb.append( RestQuery.quoteAndSanitize( timestamp ) );
 		sb.append( ", " );
@@ -373,7 +374,7 @@ public class UpdatePage extends Procedure {
 		sb.append( WikipediaConstants.TABLENAME_USER );
 		sb.append( " SET user_touched = "  );
 		sb.append( RestQuery.quoteAndSanitize( timestamp ) );
-		sb.append( "WHERE user_id = " );
+		sb.append( " WHERE user_id = " );
 		sb.append( userId );
 		RestQuery.restOtherQuery( sb.toString(), id );
 	}	
