@@ -56,8 +56,6 @@ public class AddWatchList extends Procedure {
     // -----------------------------------------------------------------
 	
     public void run(Connection conn, int userId, int nameSpace, String pageTitle) throws SQLException {
-		LOG.info(String.format("Here in AddWatchList!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
 
         if (userId > 0) {
 		    // TODO: find a way to by pass Unique constraints in SQL server (Replace, Merge ..?)
@@ -76,7 +74,7 @@ public class AddWatchList extends Procedure {
 				sb.append( ", " );
 				sb.append( pageTitle );
 				sb.append( ", NULL )" );
-				RestQuery.restOtherQuery( sb.toString() );
+				RestQuery.restOtherQuery( sb.toString(), id );
 		    }
 		    catch (SQLException ex) {
                 if (ex.getErrorCode() != 2627 || !ex.getSQLState().equals("23000"))
@@ -102,7 +100,7 @@ public class AddWatchList extends Procedure {
 					sb.append( ", " );
 					sb.append( pageTitle );
 					sb.append( ", NULL )" );
-					RestQuery.restOtherQuery( sb.toString() );
+					RestQuery.restOtherQuery( sb.toString(), id );
 
 		        }
 	            catch (SQLException ex) {
@@ -118,7 +116,7 @@ public class AddWatchList extends Procedure {
 			sb.append( TimeUtil.getCurrentTimeString14() );
 			sb.append( " WHERE user_id = " );
 			sb.append( userId );
-			RestQuery.restOtherQuery( sb.toString() );
+			RestQuery.restOtherQuery( sb.toString(), id );
 		}
 	}
 }
