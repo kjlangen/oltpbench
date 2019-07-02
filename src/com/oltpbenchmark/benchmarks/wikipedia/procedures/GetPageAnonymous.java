@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.List;
+import java.util.Iterator;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
@@ -129,7 +130,7 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( ", " );
 		sb.append( WikipediaConstants.TABLENAME_REVISION );
 		sb.append( "WHERE page_id = rev_page " );
-		sb.append( "AND rev_page = "); +
+		sb.append( "AND rev_page = ");
 		sb.append( pageId );
 		sb.append( " AMD page_id = ");
 		sb.append( pageId );
@@ -142,11 +143,11 @@ public class GetPageAnonymous extends Procedure {
             throw new UserAbortException(msg);
         }
 
-		Map<String,Object> row = resultSet.get( 0 );
+		row = resultSet.get( 0 );
         int revisionId = (Integer) row.get("rev_id");
         int textId = (Integer) row.get("rev_text_id");
 		
-		assert( resultSet.size(), equalTo( 1 ) );
+		assert resultSet.size() == 1;
 
         // NOTE: the following is our variation of wikipedia... the original did
         // not contain old_page column!

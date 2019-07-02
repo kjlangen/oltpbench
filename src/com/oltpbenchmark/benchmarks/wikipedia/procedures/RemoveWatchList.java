@@ -45,31 +45,42 @@ public class RemoveWatchList extends Procedure {
         " WHERE user_id =  ? "
     ); 
 
-    public void run(Connection conn, int userId, int nameSpace, String pageTitle, int termId) throws SQLException {
-        LOG.info(String.format("Here in RemoveWatchList!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
-
+    public void run(Connection conn, int userId, int nameSpace, String pageTitle, int id) throws SQLException {
         if (userId > 0) {
-            PreparedStatement ps = this.getPreparedStatement(conn, removeWatchList);
-            ps.setInt(1, userId);
-            ps.setInt(2, nameSpace);
-            ps.setString(3, pageTitle);
-            ps.executeUpdate();
+            StringBuilder sb = new StringBuilder();
+            sb.append("DELETE FROM ");
+            sb.append(WikipediaConstants.TABLENAME_WATCHLIST);
+            sb.append(" WHERE wl_user = ");
+            sb.append(userId);
+            sb.append(" AND wl_namespace = ");
+            sb.append(nameSpace);
+            sb.append(" AND wl_title = ");
+            sb.append(pageTitle);
+            RestQuery.restOtherQuery(sb.toString(), id);
 
             if (nameSpace == 0) {
                 // if regular page, also remove a line of
                 // watchlist for the corresponding talk page
-                ps = this.getPreparedStatement(conn, removeWatchList);
-                ps.setInt(1, userId);
-                ps.setInt(2, 1);
-                ps.setString(3, pageTitle);
-                ps.executeUpdate();
+                sb = new StringBuilder();
+                sb.append("DELETE FROM ");
+                sb.append(WikipediaConstants.TABLENAME_WATCHLIST);
+                sb.append(" WHERE wl_user = ");
+                sb.append(userId);
+                sb.append(" AND wl_namespace = ");
+                sb.append(1);
+                sb.append(" AND wl_title = ");
+                sb.append(pageTitle);
+                RestQuery.restOtherQuery(sb.toString(), id);
             }
 
-            ps = this.getPreparedStatement(conn, setUserTouched);
-            ps.setString(1, TimeUtil.getCurrentTimeString14());
-            ps.setInt(2, userId);
-            ps.executeUpdate();
+            sb = new StringBuilder();
+            sb.append("UPDATE ");
+            sb.append(WikipediaConstants.TABLENAME_USER);
+            sb.append(" SET user_touched = ");
+            sb.append(TimeUtil.getCurrentTimeString14());
+            sb.append(" WHERE user_id = ");
+            sb.append(userId);
+            RestQuery.restOtherQuery(sb.toString(), id);
         }
     }
 }
