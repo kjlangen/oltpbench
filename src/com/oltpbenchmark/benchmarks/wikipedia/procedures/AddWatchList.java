@@ -67,7 +67,7 @@ public class AddWatchList extends Procedure {
 			sb.append( ", " );
 			sb.append( nameSpace );
 			sb.append( ", " );
-			sb.append( pageTitle );
+			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 			sb.append( ", NULL )" );
 			RestQuery.restOtherQuery( sb.toString(), id );
 
@@ -84,7 +84,7 @@ public class AddWatchList extends Procedure {
 				sb.append( ", " );
 				sb.append( 1 );
 				sb.append( ", " );
-				sb.append( pageTitle );
+				sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 				sb.append( ", NULL )" );
 				RestQuery.restOtherQuery( sb.toString(), id );
 			}

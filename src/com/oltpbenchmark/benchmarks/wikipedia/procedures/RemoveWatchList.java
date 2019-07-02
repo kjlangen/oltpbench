@@ -55,7 +55,7 @@ public class RemoveWatchList extends Procedure {
             sb.append(" AND wl_namespace = ");
             sb.append(nameSpace);
             sb.append(" AND wl_title = ");
-            sb.append(pageTitle);
+            sb.append(RestQuery.quoteAndSanitize(pageTitle));
             RestQuery.restOtherQuery(sb.toString(), id);
 
             if (nameSpace == 0) {
@@ -69,7 +69,7 @@ public class RemoveWatchList extends Procedure {
                 sb.append(" AND wl_namespace = ");
                 sb.append(1);
                 sb.append(" AND wl_title = ");
-                sb.append(pageTitle);
+                sb.append(RestQuery.quoteAndSanitize(pageTitle));
                 RestQuery.restOtherQuery(sb.toString(), id);
             }
 

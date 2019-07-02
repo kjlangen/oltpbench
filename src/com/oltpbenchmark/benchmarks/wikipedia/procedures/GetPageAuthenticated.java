@@ -87,7 +87,7 @@ public class GetPageAuthenticated extends Procedure {
         // Retrieve the user data, if the user is logged in
 
         // FIXME TOO FREQUENTLY SELECTING BY USER_ID
-        String userText = userIp;
+        String userText = RestQuery.quoteAndSanitize( userIp );
 
         PreparedStatement st = this.getPreparedStatement(conn, selectUser);
         if (userId > 0) {
@@ -97,7 +97,7 @@ public class GetPageAuthenticated extends Procedure {
 			sb.append( " WHERE page_namespace = " );
 			sb.append( nameSpace );
 			sb.append( " AND page_title = " );
-			sb.append( pageTitle );
+			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 			sb.append( " LIMIT 1" );
 
 			List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -129,7 +129,7 @@ public class GetPageAuthenticated extends Procedure {
 		sb.append( " WHERE page_namespace = " );
 		sb.append( nameSpace );
 		sb.append( " AND page_title = " );
-		sb.append( pageTitle );
+		sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 		sb.append( " LIMIT 1" );
 
 		List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );

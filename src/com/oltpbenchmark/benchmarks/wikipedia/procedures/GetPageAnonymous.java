@@ -82,7 +82,7 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( " WHERE page_namespace = " );
 		sb.append( pageNamespace );
 		sb.append( " AND page_title = " );
-		sb.append( pageTitle );
+		sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 		sb.append( " LIMIT 1" );
 
 		List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -115,7 +115,7 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( "SELECT * FROM " );
 		sb.append( WikipediaConstants.TABLENAME_IPBLOCKS );
 		sb.append( " WHERE ipb_address = " );
-		sb.append( userIp );
+		sb.append( RestQuery.quoteAndSanitize( userIp ) );
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		rowIter = resultSet.iterator();
