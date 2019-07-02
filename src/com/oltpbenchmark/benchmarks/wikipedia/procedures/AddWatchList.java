@@ -55,9 +55,9 @@ public class AddWatchList extends Procedure {
     // RUN
     // -----------------------------------------------------------------
 	
-    public void run(Connection conn, int userId, int nameSpace, String pageTitle) throws SQLException {
+    public void run(Connection conn, int userId, int nameSpace, String pageTitle, int termId) throws SQLException {
 		LOG.info(String.format("Here in AddWatchList!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", userId);
+        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
 
         if (userId > 0) {
 		    // TODO: find a way to by pass Unique constraints in SQL server (Replace, Merge ..?)
