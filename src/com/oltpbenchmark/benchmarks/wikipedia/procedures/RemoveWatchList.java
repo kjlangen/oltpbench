@@ -20,14 +20,21 @@ package com.oltpbenchmark.benchmarks.wikipedia.procedures;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.wikipedia.WikipediaConstants;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.util.TimeUtil;
+
+import org.apache.log4j.Logger;
 
 public class RemoveWatchList extends Procedure {
 	
+    private static final Logger LOG = Logger.getLogger(RemoveWatchList.class);
+
 	public SQLStmt removeWatchList = new SQLStmt(
         "DELETE FROM " + WikipediaConstants.TABLENAME_WATCHLIST +
         " WHERE wl_user = ? AND wl_namespace = ? AND wl_title = ?"
@@ -39,6 +46,8 @@ public class RemoveWatchList extends Procedure {
     ); 
 
     public void run(Connection conn, int userId, int nameSpace, String pageTitle) throws SQLException {
+        LOG.info(String.format("Here in RemoveWatchList!"));
+        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
 
         if (userId > 0) {
             PreparedStatement ps = this.getPreparedStatement(conn, removeWatchList);

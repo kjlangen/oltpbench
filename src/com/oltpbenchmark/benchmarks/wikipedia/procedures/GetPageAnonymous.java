@@ -21,14 +21,21 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.wikipedia.WikipediaConstants;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.benchmarks.wikipedia.util.Article;
+
+import org.apache.log4j.Logger;
 
 public class GetPageAnonymous extends Procedure {
 	
+    private static final Logger LOG = Logger.getLogger(GetPageAnonymous.class);
+
     // -----------------------------------------------------------------
     // STATEMENTS
     // -----------------------------------------------------------------
@@ -65,8 +72,11 @@ public class GetPageAnonymous extends Procedure {
     // -----------------------------------------------------------------
 	
 	public Article run(Connection conn, boolean forSelect, String userIp,
-			                            int pageNamespace, String pageTitle) throws UserAbortException, SQLException {		
-	    int param = 1;
+			                            int pageNamespace, String pageTitle) throws UserAbortException, SQLException {
+        LOG.info(String.format("Here in GetPageAnonymous!"));
+        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", 0);
+
+        int param = 1;
 	    
 		PreparedStatement st = this.getPreparedStatement(conn, selectPage);
         st.setInt(param++, pageNamespace);
@@ -133,5 +143,4 @@ public class GetPageAnonymous extends Procedure {
         rs.close();
         return a;
     }
-
 }

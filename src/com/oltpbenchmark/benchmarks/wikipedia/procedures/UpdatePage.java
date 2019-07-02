@@ -22,14 +22,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.List;
 
 //import ch.ethz.ssh2.log.Logger;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.wikipedia.WikipediaConstants;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.util.TimeUtil;
 import org.apache.log4j.Logger;
+
 public class UpdatePage extends Procedure {
 	private static final Logger LOG = Logger.getLogger(Procedure.class);
     // -----------------------------------------------------------------
@@ -132,6 +136,9 @@ public class UpdatePage extends Procedure {
 	                                 String pageTitle, String pageText, int pageNamespace,
 	                                 int userId, String userIp, String userText,
 	                                 int revisionId, String revComment, int revMinorEdit) throws SQLException {
+
+	    LOG.info(String.format("Here in UpdatePage!"));
+		RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
 
 	    boolean adv;
 	    PreparedStatement ps = null;
@@ -340,5 +347,3 @@ public class UpdatePage extends Procedure {
 			}
 		}
 }
-
-

@@ -21,14 +21,21 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.wikipedia.WikipediaConstants;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.benchmarks.wikipedia.util.Article;
+
+import org.apache.log4j.Logger;
 
 public class GetPageAuthenticated extends Procedure {
 	
+    private static final Logger LOG = Logger.getLogger(GetPageAuthenticated.class);
+
     // -----------------------------------------------------------------
     // STATEMENTS
     // -----------------------------------------------------------------
@@ -72,6 +79,9 @@ public class GetPageAuthenticated extends Procedure {
     // -----------------------------------------------------------------
 	
     public Article run(Connection conn, boolean forSelect, String userIp, int userId, int nameSpace, String pageTitle) throws SQLException {
+        LOG.info(String.format("Here in GetPageAuthenticated!"));
+        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
+
         // =======================================================
         // LOADING BASIC DATA: txn1
         // =======================================================
@@ -169,5 +179,4 @@ public class GetPageAuthenticated extends Procedure {
 
         return a;
     }
-
 }

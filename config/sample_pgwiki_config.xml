@@ -4,10 +4,10 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://localhost:5432/wikipedia</DBUrl>
+    <DBUrl>jdbc:postgresql://35.164.186.20:5432/wiki</DBUrl>
     <DBName>wikipedia</DBName>
-    <username>joe</username>
-    <password>joe</password>
+    <username>kronos</username>
+    <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
     <uploadCode></uploadCode>
     <uploadUrl></uploadUrl>
@@ -25,7 +25,7 @@
  	<terminals>1</terminals>
     <works>
         <work>
-          <time>60</time>
+          <time>120</time>
           <rate>1000</rate>
           <weights>0.07,0.07,7.6725,91.2656,0.9219</weights>
         </work>

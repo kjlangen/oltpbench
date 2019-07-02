@@ -20,13 +20,19 @@ package com.oltpbenchmark.benchmarks.wikipedia.procedures;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.wikipedia.WikipediaConstants;
+import com.oltpbenchmark.benchmarks.wikipedia.util.RestQuery;
 import com.oltpbenchmark.util.TimeUtil;
 
+import org.apache.log4j.Logger;
+
 public class AddWatchList extends Procedure {
+    private static final Logger LOG = Logger.getLogger(AddWatchList.class);
 
     // -----------------------------------------------------------------
     // STATEMENTS
@@ -50,7 +56,10 @@ public class AddWatchList extends Procedure {
     // -----------------------------------------------------------------
 	
     public void run(Connection conn, int userId, int nameSpace, String pageTitle) throws SQLException {
-		if (userId > 0) {
+		LOG.info(String.format("Here in AddWatchList!"));
+        RestQuery.restQuery("SELECT * FROM watchlist LIMIT 10", userId);
+
+        if (userId > 0) {
 		    // TODO: find a way to by pass Unique constraints in SQL server (Replace, Merge ..?)
 		    // Here I am simply catching the right excpetion and move on.
 		    try
@@ -90,5 +99,4 @@ public class AddWatchList extends Procedure {
 			ps.executeUpdate();
 		}
 	}
-    
 }
