@@ -46,6 +46,11 @@ public class RestQuery
 		hostname = host;
 	}
 
+	public static String quoteAndSanitize(String dirty)
+	{
+		return "'" + dirty.replace("'", "\\'") + "'";
+	}
+
 	public static List<Map<String, Object>> restReadQuery(String queryString, int clientId)
 	{
 		// Make a new client pointing at Apollo/the rest service
@@ -55,7 +60,7 @@ public class RestQuery
 
         // Make the post query
         LOG.info(String.format("Here in restQuery before response."));
-        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, queryString);
+        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
         LOG.info(String.format("Here in restQuery after response."));
         LOG.info(String.format("Response was: %s", response));
         
@@ -83,7 +88,7 @@ public class RestQuery
 
         // Make the post query
         LOG.info(String.format("Here in restQuery before response."));
-        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, queryString);
+        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
         LOG.info(String.format("Here in restQuery after response."));
         LOG.info(String.format("Response was: %s", response));
         
