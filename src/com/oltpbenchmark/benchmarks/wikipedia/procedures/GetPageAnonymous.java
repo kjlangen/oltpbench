@@ -72,75 +72,105 @@ public class GetPageAnonymous extends Procedure {
     // -----------------------------------------------------------------
 	
 	public Article run(Connection conn, boolean forSelect, String userIp,
-			                            int pageNamespace, String pageTitle, int termId) throws UserAbortException, SQLException {
-        LOG.info(String.format("Here in GetPageAnonymous!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
-
+			                            int pageNamespace, String pageTitle, int id) throws UserAbortException, SQLException {
         int param = 1;
-	    
-		PreparedStatement st = this.getPreparedStatement(conn, selectPage);
-        st.setInt(param++, pageNamespace);
-        st.setString(param++, pageTitle);
-        ResultSet rs = st.executeQuery();
-        if (!rs.next()) {
+
+		StringBuilder sb = new StringBuilder();
+		sb.append( "SELECT * FROM " );
+		sb.append( WikipediaConstants.TABLENAME_PAGE );
+		sb.append( " WHERE page_namespace = " );
+		sb.append( pageNamespace );
+		sb.append( " AND page_title = " );
+		sb.append( pageTitle );
+		sb.append( " LIMIT 1" );
+
+		List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		if( resultSet.isEmpty() ) {
             String msg = String.format("Invalid Page: Namespace:%d / Title:--%s--", pageNamespace, pageTitle);
             throw new UserAbortException(msg);
         }
-        int pageId = rs.getInt(1);
-        rs.close();
 
-        st = this.getPreparedStatement(conn, selectPageRestriction);
-        st.setInt(1, pageId);
-        rs = st.executeQuery();
-        while (rs.next()) {
-            byte[] pr_type = rs.getBytes(1);
-            assert(pr_type != null);
-        } // WHILE
-        rs.close();
+		Map<String, Object> row = resultSet.get(0);
+		int pageId = (Integer) row.get( "page_id" );
+
+		sb = new StringBuilder();
+		sb.append( "SELECT * FROM " );
+		sb.append( WikipediaConstants.TABLENAME_PAGE_RESTRICTIONS );
+		sb.append( " WHERE pr_page = " );
+		sb.append( pageId );
+
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		assert( !resultSet.isEmpty() );
+		
+		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
+		while( rowIter.hasNext() ) {
+			assert( rowIter.next().get( "pr_type" ) != null );
+		}
+		
         // check using blocking of a user by either the IP address or the
         // user_name
 
-        st = this.getPreparedStatement(conn, selectIpBlocks);
-		st.setString(1, userIp);
-        rs = st.executeQuery();
-        while (rs.next()) {
-            byte[] ipb_expiry = rs.getBytes(11);
-            assert(ipb_expiry != null);
-        } // WHILE
-        rs.close();
+		sb = new StringBuilder();
+		sb.append( "SELECT * FROM " );
+		sb.append( WikipediaConstants.TABLENAME_IPBLOCKS );
+		sb.append( " WHERE ipb_address = " );
+		sb.append( userIp );
 
-        st = this.getPreparedStatement(conn, selectPageRevision);
-        st.setInt(1, pageId);
-        st.setInt(2, pageId);
-        rs = st.executeQuery();
-        if (!rs.next()) {
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		rowIter = resultSet.iterator();
+        while( rowIter.hasNext() ) {
+			assert( rowIter.next().get( "ipb_expiry" ) != null );
+        }
+
+
+		sb = new StringBuilder();
+		sb.append( "SELECT * FROM " );
+		sb.append( WikipediaConstants.TABLENAME_PAGE );
+		sb.append( ", " );
+		sb.append( WikipediaConstants.TABLENAME_REVISION );
+		sb.append( "WHERE page_id = rev_page " );
+		sb.append( "AND rev_page = "); +
+		sb.append( pageId );
+		sb.append( " AMD page_id = ");
+		sb.append( pageId );
+        sb.append( " AND rev_id = page_latest LIMIT 1" );
+
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+        if( resultSet.isEmpty() ) {
             String msg = String.format("Invalid Page: Namespace:%d / Title:--%s-- / PageId:%d",
                                        pageNamespace, pageTitle, pageId);
             throw new UserAbortException(msg);
         }
 
-        int revisionId = rs.getInt("rev_id");
-        int textId = rs.getInt("rev_text_id");
-        assert !rs.next();
-        rs.close();
+		Map<String,Object> row = resultSet.get( 0 );
+        int revisionId = (Integer) row.get("rev_id");
+        int textId = (Integer) row.get("rev_text_id");
+		
+		assert( resultSet.size(), equalTo( 1 ) );
 
         // NOTE: the following is our variation of wikipedia... the original did
         // not contain old_page column!
         // sql =
         // "SELECT old_text,old_flags FROM `text` WHERE old_id = '"+textId+"' AND old_page = '"+pageId+"' LIMIT 1";
         // For now we run the original one, which works on the data we have
-        st = this.getPreparedStatement(conn, selectText);
-        st.setInt(1, textId);
-        rs = st.executeQuery();
-        if (!rs.next()) {
+
+		sb = new StringBuilder();
+		sb.append( "SELECT old_text, old_flags FROM " );
+		sb.append( WikipediaConstants.TABLENAME_TEXT );
+		sb.append( " WHERE old_id = " );
+		sb.append( textId );
+		sb.append( " LIMIT 1" );
+
+		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		if( resultSet.isEmpty() ) {
             String msg = "No such text: " + textId + " for page_id:" + pageId + " page_namespace: " + pageNamespace + " page_title:" + pageTitle;
             throw new UserAbortException(msg);
         }
+
+		row = resultSet.get( 0 );
         Article a = null;
         if (!forSelect)
-			a = new Article(userIp, pageId, rs.getString("old_text"), textId, revisionId);
-        assert !rs.next();
-        rs.close();
+			a = new Article( userIp, pageId, (String) row.get("old_text"), textId, revisionId);
         return a;
     }
 }

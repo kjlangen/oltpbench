@@ -54,21 +54,27 @@ public class AddWatchList extends Procedure {
     // -----------------------------------------------------------------
     // RUN
     // -----------------------------------------------------------------
-	
-    public void run(Connection conn, int userId, int nameSpace, String pageTitle, int termId) throws SQLException {
-		LOG.info(String.format("Here in AddWatchList!"));
-        RestQuery.restReadQuery("SELECT * FROM watchlist LIMIT 10", termId);
+
+    public void run(Connection conn, int userId, int nameSpace, String pageTitle, int id) throws SQLException {
 
         if (userId > 0) {
 		    // TODO: find a way to by pass Unique constraints in SQL server (Replace, Merge ..?)
 		    // Here I am simply catching the right excpetion and move on.
 		    try
 		    {
-    			PreparedStatement ps = this.getPreparedStatement(conn, insertWatchList);
-    			ps.setInt(1, userId);
-    			ps.setInt(2, nameSpace);
-    			ps.setString(3, pageTitle);
-    			ps.executeUpdate();
+
+				StringBuilder sb = new StringBuilder();
+				sb.append( "INSERT INTO " );
+				sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+				sb.append(  "( wl_user, wl_namespace, wl_title, wl_notificationtimestamp )" );
+				sb.append( "VALUES( " );
+				sb.append( userId );
+				sb.append( ", " );
+				sb.append( nameSpace );
+				sb.append( ", " );
+				sb.append( pageTitle );
+				sb.append( ", NULL )" );
+				RestQuery.restOtherQuery( sb.toString(), id );
 		    }
 		    catch (SQLException ex) {
                 if (ex.getErrorCode() != 2627 || !ex.getSQLState().equals("23000"))
@@ -77,15 +83,25 @@ public class AddWatchList extends Procedure {
 		
 			if (nameSpace == 0) 
 			{ 
+
+
 		        try
 		        {
     				// if regular page, also add a line of
     				// watchlist for the corresponding talk page
-    			    PreparedStatement ps = this.getPreparedStatement(conn, insertWatchList);
-    				ps.setInt(1, userId);
-    				ps.setInt(2, 1);
-    				ps.setString(3, pageTitle);
-    				ps.executeUpdate();
+					StringBuilder sb = new StringBuilder();
+					sb.append( "INSERT INTO " );
+					sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+					sb.append(  "( wl_user, wl_namespace, wl_title, wl_notificationtimestamp )" );
+					sb.append( "VALUES( " );
+					sb.append( userId );
+					sb.append( ", " );
+					sb.append( 1 );
+					sb.append( ", " );
+					sb.append( pageTitle );
+					sb.append( ", NULL )" );
+					RestQuery.restOtherQuery( sb.toString(), id );
+
 		        }
 	            catch (SQLException ex) {
 	                if (ex.getErrorCode() != 2627 || !ex.getSQLState().equals("23000"))
@@ -93,10 +109,14 @@ public class AddWatchList extends Procedure {
 	            }
 			}
 
-			PreparedStatement ps = this.getPreparedStatement(conn, setUserTouched);
-			ps.setString(1, TimeUtil.getCurrentTimeString14());
-			ps.setInt(2, userId);
-			ps.executeUpdate();
+			StringBuilder sb = new StringBuilder();
+			sb.append( "UPDATE " );
+			sb.append( WikipediaConstants.TABLENAME_USER );
+			sb.append( " SET user_touched = " );
+			sb.append( TimeUtil.getCurrentTimeString14() );
+			sb.append( " WHERE user_id = " );
+			sb.append( userId );
+			RestQuery.restOtherQuery( sb.toString(), id );
 		}
 	}
 }
