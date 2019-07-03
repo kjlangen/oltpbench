@@ -228,7 +228,7 @@ public class UpdatePage extends Procedure {
 		sb = new StringBuilder();
 		sb.append( "INSERT INTO "  );
 		sb.append( WikipediaConstants.TABLENAME_RECENTCHANGES );
-	    sb.append( "rc_timestamp, " );
+	    sb.append( " ( rc_timestamp, " );
 	    sb.append( "rc_cur_time, " );
 	    sb.append( "rc_namespace, " );
 	    sb.append( "rc_title, " );
