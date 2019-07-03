@@ -78,6 +78,8 @@ public class RestQuery
 			LOG.error(String.format( "IOException caught, message: {}", e.getMessage()));
 		}
 
+		assert data != null;
+
 		return data;
 	}
 
@@ -107,6 +109,8 @@ public class RestQuery
 		{
 			LOG.error(String.format( "IOException caught, message: {}", e.getMessage()));
 		}
+
+		assert data != -1;
 
 		return data;
 	}
