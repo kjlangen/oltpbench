@@ -209,7 +209,7 @@ public class UpdatePage extends Procedure {
 		sb.append( WikipediaConstants.TABLENAME_REVISION );
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
-		int nextRevId = (Integer) resultSet.get( 0 ).get( "rev_id" );
+		int nextRevId = (Integer) resultSet.get( 0 ).get( "mid" );
 
 		sb = new StringBuilder();
 		sb.append( "UPDATE " );
