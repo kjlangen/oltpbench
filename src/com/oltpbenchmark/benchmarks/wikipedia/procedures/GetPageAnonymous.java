@@ -132,7 +132,7 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( " WHERE page_id = rev_page " );
 		sb.append( "AND rev_page = ");
 		sb.append( pageId );
-		sb.append( " AMD page_id = ");
+		sb.append( " AND page_id = ");
 		sb.append( pageId );
         sb.append( " AND rev_id = page_latest LIMIT 1" );
 
