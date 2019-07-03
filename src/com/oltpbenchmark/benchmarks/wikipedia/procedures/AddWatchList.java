@@ -93,7 +93,7 @@ public class AddWatchList extends Procedure {
 			sb.append( "UPDATE " );
 			sb.append( WikipediaConstants.TABLENAME_USER );
 			sb.append( " SET user_touched = " );
-			sb.append( TimeUtil.getCurrentTimeString14() );
+			sb.append( RestQuery.quoteAndSanitize( TimeUtil.getCurrentTimeString14() ) );
 			sb.append( " WHERE user_id = " );
 			sb.append( userId );
 			RestQuery.restOtherQuery( sb.toString(), id );

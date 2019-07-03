@@ -152,7 +152,7 @@ public class UpdatePage extends Procedure {
 		sb.append( " ( old_page, old_text, old_flags ) VALUES ( " );
 		sb.append( pageId );
 		sb.append( ", " );
-		sb.append( pageText );
+		sb.append( RestQuery.quoteAndSanitize( pageText ) );
 		sb.append( ", 'utf-8' )" );
 
 		RestQuery.restOtherQuery( sb.toString(), id );
@@ -187,15 +187,15 @@ public class UpdatePage extends Procedure {
 		sb.append( ", " );
 		sb.append( nextTextId );
 		sb.append( ", " );
-		sb.append( revComment );
+		sb.append( RestQuery.quoteAndSanitize( revComment ) );
 		sb.append( ", " );
 		sb.append( revMinorEdit );
 		sb.append( ", " );
 		sb.append( userId );
 		sb.append( ", " );
-		sb.append( RestQuery.quoteAndSanitize(userText) );
+		sb.append( RestQuery.quoteAndSanitize( userText ) );
 		sb.append( ", " );
-		sb.append( RestQuery.quoteAndSanitize(timestamp) );
+		sb.append( RestQuery.quoteAndSanitize( timestamp ) );
 		sb.append( ", 0, " );
 		sb.append( pageText.length() );
 		sb.append( ", " );
@@ -217,7 +217,7 @@ public class UpdatePage extends Procedure {
 		sb.append( " SET page_latest = " );
 		sb.append( nextRevId );
 		sb.append( ", page_touched =  " );
-		sb.append( timestamp );
+		sb.append( RestQuery.quoteAndSanitize( timestamp ) );
 		sb.append( ", page_is_new = 0, page_is_redirect = 0, page_len = " );
 		sb.append( pageText.length() );
 		sb.append( " WHERE page_id = " );
@@ -309,7 +309,7 @@ public class UpdatePage extends Procedure {
 				sb.append( "UPDATE " );
 				sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
 				sb.append( " SET wl_notificationtimestamp = " );
-				sb.append( timestamp );
+				sb.append( RestQuery.quoteAndSanitize( timestamp ) );
 				sb.append( " WHERE wl_title = " );
 				sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
 				sb.append( " AND wl_namespace = " );
