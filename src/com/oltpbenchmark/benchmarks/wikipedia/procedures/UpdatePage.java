@@ -358,7 +358,7 @@ public class UpdatePage extends Procedure {
 		sb.append( RestQuery.quoteAndSanitize( userText ) );
 		sb.append( ", " );
 		sb.append( pageId );
-		sb.append( ", " );
+		sb.append( ", '', " );
 		sb.append( RestQuery.quoteAndSanitize( String.format("%d\n%d\n%d", nextRevId, revisionId, 1)) );
 		sb.append( " )" );
 		RestQuery.restOtherQuery( sb.toString(), id );
