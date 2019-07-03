@@ -56,19 +56,21 @@ public class RestQuery
 		// Make a new client pointing at Apollo/the rest service
 		Client client = new Client();
 		String target = "http://" + hostname + ":8080/kronos/rest/query/" + clientId;
-        WebResource resource = client.resource(target);
+		WebResource resource = client.resource(target);
 
-        // Make the post query
-        LOG.info(String.format("Here in restQuery before response."));
-        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
-        LOG.info(String.format("Here in restQuery after response."));
-        LOG.info(String.format("Response was: %s", response));
-        
-        // Deparse the result
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> data = null;
-        try
-        {
+		// Log where we're going and what we're sending
+		LOG.info(String.format("restReadQuery targeted %s", target));
+		LOG.info(String.format("restReadQuery Q = %s", queryString));
+
+		// Make the post query
+		String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
+		LOG.info(String.format("restReadQuery result = %s", response));
+
+		// Deparse the result
+		ObjectMapper mapper = new ObjectMapper();
+		List<Map<String, Object>> data = null;
+		try
+		{
 			data = mapper.readValue(response, new TypeReference<List<Map<String, Object>>>(){});
 		}
 		catch (Exception e)
@@ -83,20 +85,22 @@ public class RestQuery
 	{
 		// Make a new client pointing at Apollo/the rest service
 		Client client = new Client();
-		String target = "http://3.91.230.74:8080/kronos/rest/query/" + clientId;
-        WebResource resource = client.resource(target);
+		String target = "http://" + hostname + ":8080/kronos/rest/query/" + clientId;
+		WebResource resource = client.resource(target);
 
-        // Make the post query
-        LOG.info(String.format("Here in restQuery before response."));
-        String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
-        LOG.info(String.format("Here in restQuery after response."));
-        LOG.info(String.format("Response was: %s", response));
-        
-        // Deparse the result
-        ObjectMapper mapper = new ObjectMapper();
-        int data = -1;
-        try
-        {
+		// Log where we're going and what we're sending
+		LOG.info(String.format("restOtherQuery targeted %s", target));
+		LOG.info(String.format("restOtherQuery Q = %s", queryString));
+
+		// Make the post query
+		String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
+		LOG.info(String.format("restOtherQuery result = %s", response));
+
+		// Deparse the result
+		ObjectMapper mapper = new ObjectMapper();
+		int data = -1;
+		try
+		{
 			data = mapper.readValue(response, Integer.class);
 		}
 		catch (Exception e)
