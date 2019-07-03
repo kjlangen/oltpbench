@@ -267,9 +267,10 @@ public class UpdatePage extends Procedure {
 		sb.append( ", " );
 		sb.append( textId );
 		sb.append( ", 0, 0, '', " );
-		sb.append( userId );
+		sb.append( RestQuery.quoteAndSanitize( userIp ) );
 		sb.append( ", " );
 		sb.append( pageText.length() );
+		sb.append( ", " );
 		sb.append( pageText.length() );
 		sb.append( " ) " );
 		RestQuery.restOtherQuery( sb.toString(), id );
