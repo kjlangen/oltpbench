@@ -280,61 +280,72 @@ public class UpdatePage extends Procedure {
 
 		// SELECT WATCHING USERS
 
-		sb = new StringBuilder();
-		sb.append( "SELECT wl_user FROM " );
-		sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
-		sb.append( " WHERE wl_title = " ); 
-		sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
-		sb.append( " AND wl_namespace = " );
-		sb.append( pageNamespace );
-		sb.append( " AND wl_user != " );
-		sb.append( userId );
-		sb.append( " AND wl_notificationtimestamp IS NULL" );
+		// sb = new StringBuilder();
+		// sb.append( "SELECT wl_user FROM " );
+		// sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+		// sb.append( " WHERE wl_title = " );
+		// sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
+		// sb.append( " AND wl_namespace = " );
+		// sb.append( pageNamespace );
+		// sb.append( " AND wl_user != " );
+		// sb.append( userId );
+		// sb.append( " AND wl_notificationtimestamp IS NULL" );
 
-		resultSet = RestQuery.restReadQuery( sb.toString(), id );
-		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
+		// resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		// Iterator<Map<String,Object>> rowIter = resultSet.iterator();
 
-		ArrayList<Integer> wlUser = new ArrayList<Integer>();
-		while( rowIter.hasNext() ) {
-			wlUser.add( (Integer) rowIter.next().get( "wl_user" ) );
-		}
+		// ArrayList<Integer> wlUser = new ArrayList<Integer>();
+		// while( rowIter.hasNext() ) {
+		// 	wlUser.add( (Integer) rowIter.next().get( "wl_user" ) );
+		// }
 
 		// =====================================================================
 		// UPDATING WATCHLIST: txn3 (not always, only if someone is watching the
 		// page, might be part of txn2)
 		// =====================================================================
-		if (wlUser.isEmpty() == false) {
+		//if (wlUser.isEmpty() == false) {
+			sb = new StringBuilder();
+			sb.append( "UPDATE " );
+			sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+			sb.append( " SET wl_notificationtimestamp = " );
+			sb.append( RestQuery.quoteAndSanitize( timestamp ) );
+			sb.append( " WHERE wl_title = " );
+			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
+			sb.append( " AND wl_namespace = " );
+			sb.append( pageNamespace );	
+			sb.append( " AND wl_user IN ( " );
+			sb.append( "SELECT wl_user FROM " );
+			sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+			sb.append( " WHERE wl_title = " );
+			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
+			sb.append( " AND wl_namespace = " );
+			sb.append( pageNamespace );
+			sb.append( " AND wl_user != " );
+			sb.append( userId );
+			sb.append( " AND wl_notificationtimestamp IS NULL )" );
 
-			for( Integer user : wlUser ) {
-				sb = new StringBuilder();
-				sb.append( "UPDATE " );
-				sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
-				sb.append( " SET wl_notificationtimestamp = " );
-				sb.append( RestQuery.quoteAndSanitize( timestamp ) );
-				sb.append( " WHERE wl_title = " );
-				sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
-				sb.append( " AND wl_namespace = " );
-				sb.append( pageNamespace );	
-				sb.append( " AND wl_user = " );
-				sb.append( user );
-
-				RestQuery.restOtherQuery( sb.toString(), id );
-			}
+			RestQuery.restOtherQuery( sb.toString(), id );
         	
 			// ===================================================================== 
 			// UPDATING USER AND LOGGING STUFF: txn4 (might still be part of
 			// txn2)
 			// =====================================================================
+			sb = new StringBuilder();
+			sb.append( "SELECT * FROM " );
+			sb.append( WikipediaConstants.TABLENAME_USER );
+			sb.append( " WHERE user_id IN ( "  );
+			sb.append( "SELECT wl_user FROM " );
+			sb.append( WikipediaConstants.TABLENAME_WATCHLIST );
+			sb.append( " WHERE wl_title = " );
+			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
+			sb.append( " AND wl_namespace = " );
+			sb.append( pageNamespace );
+			sb.append( " AND wl_user != " );
+			sb.append( userId );
+			sb.append( " AND wl_notificationtimestamp IS NULL )" );
 
-			for( Integer user : wlUser ) {
-				sb = new StringBuilder();
-				sb.append( "SELECT * FROM " );
-				sb.append( WikipediaConstants.TABLENAME_USER );
-				sb.append( " WHERE user_id = "  );
-				sb.append( user );
-				RestQuery.restReadQuery( sb.toString(), id );
-			}
-		}
+			RestQuery.restReadQuery( sb.toString(), id );
+		//}
 
 		// This is always executed, sometimes as a separate transaction,
 		// sometimes together with the previous one
