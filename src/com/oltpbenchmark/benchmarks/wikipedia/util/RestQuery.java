@@ -91,12 +91,12 @@ public class RestQuery
 		WebResource resource = client.resource(target);
 
 		// Log where we're going and what we're sending
-		//LOG.info(String.format("restOtherQuery targeted %s", target));
+		LOG.trace(String.format("restOtherQuery targeted %s", target));
 		LOG.info(String.format("restOtherQuery Q = %s", queryString));
 
 		// Make the post query
 		String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
-		//LOG.info(String.format("restOtherQuery result = %s", response));
+		LOG.trace(String.format("restOtherQuery result = %s", response));
 
 		// Deparse the result
 		ObjectMapper mapper = new ObjectMapper();
