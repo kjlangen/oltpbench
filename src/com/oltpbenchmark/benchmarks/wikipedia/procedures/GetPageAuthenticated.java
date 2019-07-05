@@ -92,12 +92,10 @@ public class GetPageAuthenticated extends Procedure {
         PreparedStatement st = this.getPreparedStatement(conn, selectUser);
         if (userId > 0) {
 			StringBuilder sb = new StringBuilder();
-			sb.append( "SELECT * FROM " );
-			sb.append( WikipediaConstants.TABLENAME_PAGE );
-			sb.append( " WHERE page_namespace = " );
-			sb.append( nameSpace );
-			sb.append( " AND page_title = " );
-			sb.append( RestQuery.quoteAndSanitize( pageTitle ) );
+			sb.append( "SELECT user_name FROM " );
+			sb.append( WikipediaConstants.TABLENAME_USER );
+			sb.append( " WHERE user_id = " );
+			sb.append( userId );
 			sb.append( " LIMIT 1" );
 
 			List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -124,7 +122,7 @@ public class GetPageAuthenticated extends Procedure {
         }
 
 		StringBuilder sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT page_id FROM " );
 		sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( " WHERE page_namespace = " );
 		sb.append( nameSpace );
@@ -142,7 +140,7 @@ public class GetPageAuthenticated extends Procedure {
         int pageId = (Integer) row.get( "page_id" );
 
 		sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT pr_type FROM " );
         sb.append( WikipediaConstants.TABLENAME_PAGE_RESTRICTIONS );
         sb.append( " WHERE pr_page = " );
 		sb.append( pageId );
@@ -158,7 +156,7 @@ public class GetPageAuthenticated extends Procedure {
         // user_name
 
 		sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT ipb_expiry FROM " );
 		sb.append( WikipediaConstants.TABLENAME_IPBLOCKS );
 		sb.append( " WHERE ipb_user = " );
 		sb.append( userId );
@@ -170,7 +168,7 @@ public class GetPageAuthenticated extends Procedure {
         }
 
 		sb = new StringBuilder();
-        sb.append( "SELECT * FROM " );
+        sb.append( "SELECT rev_id, rev_text_id FROM " );
         sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( ", " );
         sb.append( WikipediaConstants.TABLENAME_REVISION );

@@ -335,7 +335,7 @@ public class UpdatePage extends Procedure {
 			// txn2)
 			// =====================================================================
 			sb = new StringBuilder();
-			sb.append( "SELECT * FROM " );
+			sb.append( "SELECT user_name FROM " );
 			sb.append( WikipediaConstants.TABLENAME_USER );
 			sb.append( " WHERE user_id IN ( "  );
 			sb.append( "SELECT wl_user FROM " );
