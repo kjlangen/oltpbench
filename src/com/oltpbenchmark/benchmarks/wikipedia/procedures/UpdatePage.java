@@ -165,6 +165,8 @@ public class UpdatePage extends Procedure {
 		sb = new StringBuilder();
 		sb.append(  "SELECT MAX(old_id) AS mid FROM " );
 		sb.append( WikipediaConstants.TABLENAME_TEXT );
+		sb.append( " WHERE old_page = " );
+		sb.append( pageId );
 
 		List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		int nextTextId = (Integer) resultSet.get( 0 ).get( "mid" );
@@ -207,6 +209,8 @@ public class UpdatePage extends Procedure {
 		//FIXME: see notes above
 		sb = new StringBuilder( "SELECT MAX(rev_id) AS mid FROM " );
 		sb.append( WikipediaConstants.TABLENAME_REVISION );
+		sb.append( " WHERE rev_page = ");
+		sb.append( pageId );
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		int nextRevId = (Integer) resultSet.get( 0 ).get( "mid" );
