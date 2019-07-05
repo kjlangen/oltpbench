@@ -77,7 +77,7 @@ public class GetPageAnonymous extends Procedure {
         int param = 1;
 
 		StringBuilder sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT page_id FROM " );
 		sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( " WHERE page_namespace = " );
 		sb.append( pageNamespace );
@@ -95,12 +95,14 @@ public class GetPageAnonymous extends Procedure {
 		int pageId = (Integer) row.get( "page_id" );
 
 		sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT pr_type FROM " );
 		sb.append( WikipediaConstants.TABLENAME_PAGE_RESTRICTIONS );
 		sb.append( " WHERE pr_page = " );
 		sb.append( pageId );
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
+		assert( !resultSet.isEmpty() );
+		
 		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
 		while( rowIter.hasNext() ) {
 			assert( rowIter.next().get( "pr_type" ) != null );
@@ -110,7 +112,7 @@ public class GetPageAnonymous extends Procedure {
         // user_name
 
 		sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT ipb_expiry FROM " );
 		sb.append( WikipediaConstants.TABLENAME_IPBLOCKS );
 		sb.append( " WHERE ipb_address = " );
 		sb.append( RestQuery.quoteAndSanitize( userIp ) );
@@ -123,7 +125,7 @@ public class GetPageAnonymous extends Procedure {
 
 
 		sb = new StringBuilder();
-		sb.append( "SELECT * FROM " );
+		sb.append( "SELECT rev_id, rev_text_id FROM " );
 		sb.append( WikipediaConstants.TABLENAME_PAGE );
 		sb.append( ", " );
 		sb.append( WikipediaConstants.TABLENAME_REVISION );
@@ -144,6 +146,8 @@ public class GetPageAnonymous extends Procedure {
 		row = resultSet.get( 0 );
         int revisionId = (Integer) row.get("rev_id");
         int textId = (Integer) row.get("rev_text_id");
+		
+		assert resultSet.size() == 1;
 
         // NOTE: the following is our variation of wikipedia... the original did
         // not contain old_page column!
