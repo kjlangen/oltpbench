@@ -57,7 +57,8 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
     @Override
     protected TransactionStatus executeWork(TransactionType nextTransaction) throws UserAbortException, SQLException {
         Flat z_users = new Flat(this.rng(), 1, this.num_users);
-        Zipf z_pages = new Zipf(this.rng(), 1, this.num_pages, WikipediaConstants.USER_ID_SIGMA);
+        Flat z_pages = new Flat(this.rng(), 1, this.num_pages); //, WikipediaConstants.USER_ID_SIGMA);
+        //Zipf z_pages = new Zipf(this.rng(), 1, this.num_pages, WikipediaConstants.USER_ID_SIGMA);
 
         Class<? extends Procedure> procClass = nextTransaction.getProcedureClass();
         boolean needUser = (procClass.equals(AddWatchList.class) || procClass.equals(RemoveWatchList.class) || procClass.equals(GetPageAuthenticated.class));
@@ -113,6 +114,7 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
             LOG.error("Caught SQL Exception in WikipediaWorker for procedure" + procClass.getName() + ":" + esql, esql);
             throw esql;
         } catch( UserAbortException abrt ) {
+		LOG.error( "Got abort for procedure: " + procClass.getName() );
 			//Ignore, because this can happen from sessions
 		}
         return (TransactionStatus.SUCCESS);
