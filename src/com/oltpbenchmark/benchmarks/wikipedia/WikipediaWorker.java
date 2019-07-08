@@ -112,7 +112,9 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
         } catch (SQLException esql) {
             LOG.error("Caught SQL Exception in WikipediaWorker for procedure" + procClass.getName() + ":" + esql, esql);
             throw esql;
-        }
+        } catch( UserAbortException abrt ) {
+			//Ignore, because this can happen from sessions
+		}
         return (TransactionStatus.SUCCESS);
     }
 
