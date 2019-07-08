@@ -147,10 +147,7 @@ public class GetPageAuthenticated extends Procedure {
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
-        while( rowIter.hasNext() ) {
-            assert( rowIter.next().get( "pr_type" ) != null );
-        }
-        
+       
 
         // check using blocking of a user by either the IP address or the
         // user_name
@@ -163,9 +160,6 @@ public class GetPageAuthenticated extends Procedure {
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		rowIter = resultSet.iterator();
-        while( rowIter.hasNext() ) {
-            assert( rowIter.next().get("ipb_expiry") != null );
-        }
 
 		sb = new StringBuilder();
         sb.append( "SELECT rev_id, rev_text_id FROM " );

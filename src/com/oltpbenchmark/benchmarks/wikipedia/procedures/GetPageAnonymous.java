@@ -101,12 +101,8 @@ public class GetPageAnonymous extends Procedure {
 		sb.append( pageId );
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
-		assert( !resultSet.isEmpty() );
 		
 		Iterator<Map<String,Object>> rowIter = resultSet.iterator();
-		while( rowIter.hasNext() ) {
-			assert( rowIter.next().get( "pr_type" ) != null );
-		}
 		
         // check using blocking of a user by either the IP address or the
         // user_name
@@ -119,9 +115,6 @@ public class GetPageAnonymous extends Procedure {
 
 		resultSet = RestQuery.restReadQuery( sb.toString(), id );
 		rowIter = resultSet.iterator();
-        while( rowIter.hasNext() ) {
-			assert( rowIter.next().get( "ipb_expiry" ) != null );
-        }
 
 
 		sb = new StringBuilder();
@@ -146,8 +139,6 @@ public class GetPageAnonymous extends Procedure {
 		row = resultSet.get( 0 );
         int revisionId = (Integer) row.get("rev_id");
         int textId = (Integer) row.get("rev_text_id");
-		
-		assert resultSet.size() == 1;
 
         // NOTE: the following is our variation of wikipedia... the original did
         // not contain old_page column!
