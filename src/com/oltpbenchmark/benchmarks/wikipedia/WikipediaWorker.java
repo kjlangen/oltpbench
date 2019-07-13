@@ -26,6 +26,7 @@ import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.Procedure.UserAbortException;
 import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.Worker;
+import com.oltpbenchmark.distributions.ZipfianGenerator;
 import com.oltpbenchmark.benchmarks.wikipedia.procedures.AddWatchList;
 import com.oltpbenchmark.benchmarks.wikipedia.procedures.GetPageAnonymous;
 import com.oltpbenchmark.benchmarks.wikipedia.procedures.GetPageAuthenticated;
@@ -57,7 +58,7 @@ public class WikipediaWorker extends Worker<WikipediaBenchmark> {
     @Override
     protected TransactionStatus executeWork(TransactionType nextTransaction) throws UserAbortException, SQLException {
         Flat z_users = new Flat(this.rng(), 1, this.num_users);
-        Flat z_pages = new Flat(this.rng(), 1, this.num_pages); //, WikipediaConstants.USER_ID_SIGMA);
+        ZipfianGenerator z_pages = new ZipfianGenerator(1, this.num_pages); //, WikipediaConstants.USER_ID_SIGMA);
         //Zipf z_pages = new Zipf(this.rng(), 1, this.num_pages, WikipediaConstants.USER_ID_SIGMA);
 
         Class<? extends Procedure> procClass = nextTransaction.getProcedureClass();

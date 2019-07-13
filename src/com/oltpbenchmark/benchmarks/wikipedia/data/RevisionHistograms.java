@@ -279,8 +279,8 @@ public abstract class RevisionHistograms {
             this.put(251, 138);
             this.put(252, 110);
             this.put(253, 135);
-            this.put(254, 34);
-            this.put(255, 232);
+            this.put(254, 34+232);
+            //this.put(255, 232);
         }
     };
     

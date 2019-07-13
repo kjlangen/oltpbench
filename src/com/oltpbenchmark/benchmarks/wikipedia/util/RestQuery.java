@@ -63,7 +63,12 @@ public class RestQuery
 		LOG.info(String.format("restReadQuery Q = %s", queryString));
 
 		// Make the post query
+
+		long queryStart = System.nanoTime()/1000;
 		String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
+		long queryEnd = System.nanoTime()/1000;
+		LOG.info(String.format( "Query Response time: %d", queryEnd - queryStart) );
+
 		LOG.trace(String.format("restReadQuery result = %s", response));
 
 		// Deparse the result
@@ -94,9 +99,12 @@ public class RestQuery
 		LOG.trace(String.format("restOtherQuery targeted %s", target));
 		LOG.info(String.format("restOtherQuery Q = %s", queryString));
 
+		long queryStart = System.nanoTime()/1000;
 		// Make the post query
 		String response = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(String.class, String.format("{ \"query\":\"%s\" }", queryString));
 		LOG.trace(String.format("restOtherQuery result = %s", response));
+		long queryEnd = System.nanoTime()/1000;
+		LOG.info(String.format( "Query Response time: %d", queryEnd - queryStart) );
 
 		// Deparse the result
 		ObjectMapper mapper = new ObjectMapper();
