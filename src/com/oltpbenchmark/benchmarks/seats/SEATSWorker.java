@@ -514,7 +514,8 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
                                           arrive_airport_id,
                                           start_date,
                                           stop_date,
-                                          distance);
+                                          distance,
+                                          this.getId() );
         conn.commit();
         
         if (results.size() > 1) {
@@ -546,7 +547,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         Long airport_depart_id = search_flight.getDepartAirportId();
         
         if (LOG.isTraceEnabled()) LOG.trace("Calling " + proc);
-        Object[][] results = proc.run(conn, search_flight.encode());
+        Object[][] results = proc.run(conn, search_flight.encode(), this.getId() );
         conn.commit();
         
         int rowCount = results.length;

@@ -44,11 +44,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import com.oltpbenchmark.api.*;
 
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class FindOpenSeats extends Procedure {
     private static final Logger LOG = Logger.getLogger(FindOpenSeats.class);
@@ -72,7 +75,7 @@ public class FindOpenSeats extends Procedure {
         " WHERE R_F_ID = ?"
     );
     
-    public Object[][] run(Connection conn, long f_id) throws SQLException {
+    public Object[][] run(Connection conn, long f_id, int id) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         
         // 150 seats
@@ -91,41 +94,43 @@ public class FindOpenSeats extends Procedure {
         
         // First calculate the seat price using the flight's base price
         // and the number of seats that remaining
-        PreparedStatement f_stmt = this.getPreparedStatement(conn, GetFlight);
-        f_stmt.setLong(1, f_id);
-        ResultSet f_results = f_stmt.executeQuery();
-        boolean adv = f_results.next();
-        assert(adv);
-        // long status = results[0].getLong(0);
-        double base_price = f_results.getDouble(2);
-        long seats_total = f_results.getLong(3);
-        long seats_left = f_results.getLong(4);
-        double seat_price = f_results.getDouble(5);
-        f_results.close();
-        
-        // TODO: Figure out why this doesn't match the SQL
-        //   Possible explanation: Floating point numbers are approximations;
-        //                         there is no exact representation of (for example) 0.01.
-        //                         Some databases (like PostgreSQL) will use exact types,
-        //                         such as numeric, for intermediate values.  (This is
-        //                         more-or-less equivalent to java.math.BigDecimal.)
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT F_ID, F_STATUS, F_BASE_PRICE, F_SEATS_TOTAL, F_SEATS_LEFT, " );
+        sb.append( "(F_BASE_PRICE + (F_BASE_PRICE * (1 - (F_SEATS_LEFT / F_SEATS_TOTAL)))) AS F_PRICE " );
+        sb.append( "FROM " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( " WHERE F_ID = " );
+        sb.append( f_id );
+
+        List<Map<String,Object>> flightRows = RestQuery.restReadQuery( sb.toString(), id );
+        Map<String,Object> flightData = flightRows.get( 0 );
+
+        double base_price = (Double) flightData.get( "F_BASE_PRICE" );
+        long seats_total = (Long) flightData.get( "F_SEATS_TOTAL" );
+        long seats_left = (Long) flightData.get( "F_SEATS_LEFT" );
+        double seat_price = (Double) flightData.get( "F_PRICE" );
         double _seat_price = base_price + (base_price * (1.0 - (seats_left/(double)seats_total)));
         if (debug) 
             LOG.debug(String.format("Flight %d - SQL[%.2f] <-> JAVA[%.2f] [basePrice=%f, total=%d, left=%d]",
                                     f_id, seat_price, _seat_price, base_price, seats_total, seats_left));
         
         // Then build the seat map of the remaining seats
-        PreparedStatement s_stmt = this.getPreparedStatement(conn, GetSeats);
-        s_stmt.setLong(1, f_id);
-        ResultSet s_results = s_stmt.executeQuery();
-        while (s_results.next()) {
-            long r_id = s_results.getLong(1);
-            int seatnum = s_results.getInt(3);
+
+        sb = new StringBuilder();
+        sb.append( "SELECT R_ID, R_F_ID, R_SEAT " );
+        sb.append( "FROM " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE R_F_ID = " );
+        sb.append( f_id );
+
+        List<Map<String,Object>> seats = RestQuery.restReadQuery( sb.toString(), id );
+        for( Map<String, Object> seatRow : seats ) {
+            long r_id = (Long) seatRow.get( "R_ID" );
+            int seatnum = (Integer) seatRow.get( "R_SEAT" );
             if (debug) LOG.debug(String.format("Reserved Seat: fid %d / rid %d / seat %d", f_id, r_id, seatnum));
             assert(seatmap[seatnum] == -1) : "Duplicate seat reservation: R_ID=" + r_id;
             seatmap[seatnum] = 1;
-        } // WHILE
-        s_results.close();
+        }
 
         int ctr = 0;
         Object[][] returnResults = new Object[SEATSConstants.FLIGHTS_NUM_SEATS][];
