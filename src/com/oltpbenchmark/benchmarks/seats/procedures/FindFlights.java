@@ -22,13 +22,17 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
+
 
 import org.apache.log4j.Logger;
 import com.oltpbenchmark.api.*;
 
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class FindFlights extends Procedure {
     private static final Logger LOG = Logger.getLogger(FindFlights.class);
@@ -84,8 +88,7 @@ public class FindFlights extends Procedure {
     public final SQLStmt GetFlights2 = new SQLStmt(BaseGetFlights, 2);
     public final SQLStmt GetFlights3 = new SQLStmt(BaseGetFlights, 3);
  
-    public List<Object[]> run(Connection conn, long depart_aid, long arrive_aid, Timestamp start_date, Timestamp end_date, long distance) throws SQLException {
-        try {
+    public List<Object[]> run(Connection conn, long depart_aid, long arrive_aid, Timestamp start_date, Timestamp end_date, long distance, int id) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         assert(start_date.equals(end_date) == false);
         
@@ -96,102 +99,105 @@ public class FindFlights extends Procedure {
         
         if (distance > 0) {
             // First get the nearby airports for the departure and arrival cities
-            PreparedStatement nearby_stmt = this.getPreparedStatement(conn, GetNearbyAirports, depart_aid, distance);
-            ResultSet nearby_results = nearby_stmt.executeQuery();
-            while (nearby_results.next()) {
-                long aid = nearby_results.getLong(1);
-                double aid_distance = nearby_results.getDouble(2); 
-                if (debug) LOG.debug("DEPART NEARBY: " + aid + " distance=" + aid_distance + " miles");
-                arrive_aids.add(aid);
-            } // WHILE
-            nearby_results.close();
+            StringBuilder sb = new StringBuilder();
+            sb.append( "SELECT D_AP_ID0, D_AP_ID1, D_DISTANCE FROM " );
+            sb.append( SEATSConstants.TABLENAME_AIRPORT_DISTANCE );
+            sb.append( " WHERE D_AP_ID0 = " );
+            sb.append( depart_aid );
+            sb.append( "   AND D_DISTANCE <= " );
+            sb.append( distance );
+            sb.append( " ORDER BY D_DISTANCE ASC " );
+            List<Map<String, Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+            
+            String startTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(start_date);
+            String endTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(end_date);
+            for( Map<String,Object> apRow : resultSet ) {
+                long aid = (Long) apRow.get( "DP_AP_ID1" );
+                double aid_distance = (Double) apRow.get( "D_DISTANCE" );
+
+
+
+                sb = new StringBuilder();
+                sb.append( "SELECT F_ID, F_AL_ID, F_SEATS_LEFT, " );
+                sb.append( "F_DEPART_AP_ID, F_DEPART_TIME, F_ARRIVE_AP_ID, F_ARRIVE_TIME, " );
+                sb.append("AL_NAME, AL_IATTR00, AL_IATTR01 FROM " );
+                sb.append( SEATSConstants.TABLENAME_FLIGHT ); 
+                sb.append( ", " );
+                sb.append( SEATSConstants.TABLENAME_AIRLINE );
+                sb.append( " WHERE F_DEPART_AP_ID = " );
+                sb.append( depart_aid );
+                sb.append( " AND F_DEPART_TIME >= '" );
+                sb.append( startTs ); //TODO ts format
+                sb.append( "' AND F_DEPART_TIME <= '" );
+                sb.append( endTs ); // TODO fix ts
+                sb.append( "' AND F_AL_ID = AL_ID " );
+                sb.append( " AND F_ARRIVE_AP_ID = " );
+                sb.append( aid );
+
+                List<Map<String,Object>> flights = RestQuery.restReadQuery( sb.toString(), id );
+
+                for( Map<String,Object> flightRow : flights ) {
+                    long f_depart_airport = (Long) flightRow.get( "F_DEPART_AP_ID" );
+                    long f_arrive_airport = (Long) flightRow.get( "F_ARRIVE_AP_ID" );
+                    
+                    Object row[] = new Object[13];
+                    int r = 0;
+                    
+                    row[r++] = flightRow.get("F_ID");    // [00] F_ID
+                    row[r++] = flightRow.get("F_SEATS_LEFT");    // [01] SEATS_LEFT
+                    row[r++] = flightRow.get("AL_NAME");  // [02] AL_NAME
+                    
+                    // DEPARTURE AIRPORT
+
+                    sb = new StringBuilder();
+                    sb.append( "SELECT AP_CODE, AP_NAME, AP_CITY, AP_LONGITUDE, AP_LATITUDE, " );
+                    sb.append( " CO_ID, CO_NAME, CO_CODE_2, CO_CODE_3 FROM " );
+                    sb.append( SEATSConstants.TABLENAME_AIRPORT );
+                    sb.append( ", " );
+                    sb.append( SEATSConstants.TABLENAME_COUNTRY );
+                    sb.append( " WHERE AP_ID = " );
+                    sb.append( f_depart_airport );
+                    sb.append( " AND AP_CO_ID = CO_ID ");
+                    List<Map<String,Object>> aiRows = RestQuery.restReadQuery( sb.toString(), id );
+                    Map<String,Object> aiRow = aiRows.get( 0 );
+                    row[r++] = flightRow.get("F_DEPART_TIME");    // [03] DEPART_TIME
+                    row[r++] = aiRow.get("AP_CODE" );     // [04] DEPART_AP_CODE
+                    row[r++] = aiRow.get("AP_NAME");     // [05] DEPART_AP_NAME
+                    row[r++] = aiRow.get( "AP_CITY" );     // [06] DEPART_AP_CITY
+                    row[r++] = aiRow.get( "CO_NAME" );     // [07] DEPART_AP_COUNTRY
+
+                    // ARRIVAL AIRPORT
+                    sb = new StringBuilder();
+                    sb.append( "SELECT AP_CODE, AP_NAME, AP_CITY, AP_LONGITUDE, AP_LATITUDE, " );
+                    sb.append( " CO_ID, CO_NAME, CO_CODE_2, CO_CODE_3, 1 FROM " );
+                    sb.append( SEATSConstants.TABLENAME_AIRPORT );
+                    sb.append( ", " );
+                    sb.append( SEATSConstants.TABLENAME_COUNTRY );
+                    sb.append( " WHERE AP_ID = " );
+                    sb.append( f_arrive_airport );
+                    sb.append( " AND AP_CO_ID = CO_ID");
+
+                    aiRows = RestQuery.restReadQuery( sb.toString(), id );
+                    aiRow = aiRows.get( 0 );
+
+                    row[r++] = flightRow.get("F_ARRIVE_TIME" );    // [08] ARRIVE_TIME
+                    row[r++] = aiRow.get("AP_CODE");     // [09] ARRIVE_AP_CODE
+                    row[r++] = aiRow.get("AP_NAME");     // [10] ARRIVE_AP_NAME
+                    row[r++] = aiRow.get("AP_CITY");     // [11] ARRIVE_AP_CITY
+                    row[r++] = aiRow.get("CO_NAME");     // [12] ARRIVE_AP_COUNTRY
+                    
+                    finalResults.add(row);
+                    if (debug)
+                        LOG.debug(String.format("Flight %d / %s /  %s -> %s / %s",
+                                                row[0], row[2], row[4], row[9], row[03]));
+
+                } // Each Flight
+            } // Each airport within range
         }
-        
-        // H-Store doesn't support IN clauses, so we'll only get nearby flights to nearby arrival cities
-        int num_nearby = arrive_aids.size(); 
-        if (num_nearby > 0) {
-            PreparedStatement f_stmt = null;
-            if (num_nearby == 1) {
-                f_stmt = this.getPreparedStatement(conn, GetFlights1);
-            } else if (num_nearby == 2) {
-                f_stmt = this.getPreparedStatement(conn, GetFlights2);
-            } else {
-                f_stmt = this.getPreparedStatement(conn, GetFlights3);
-            }
-            assert(f_stmt != null);
-            
-            // Set Parameters
-            f_stmt.setLong(1, depart_aid);
-            f_stmt.setTimestamp(2, start_date);
-            f_stmt.setTimestamp(3, end_date);
-            for (int i = 0, cnt = Math.min(3, num_nearby); i < cnt; i++) {
-                f_stmt.setLong(4 + i, arrive_aids.get(i));
-            } // FOR
-            
-            
-            // Process Result
-            ResultSet flightResults = f_stmt.executeQuery();
-//            if (debug) LOG.debug(String.format("Found %d flights between %d->%s [start=%s, end=%s]",
-//                                               flightResults.getRowCount(), depart_aid, arrive_aids,
-//                                               start_date, end_date));
-            
-            
-            PreparedStatement ai_stmt = this.getPreparedStatement(conn, GetAirportInfo); 
-            ResultSet ai_results = null;
-            while (flightResults.next()) {
-                long f_depart_airport = flightResults.getLong(4);
-                long f_arrive_airport = flightResults.getLong(6);
-                
-                Object row[] = new Object[13];
-                int r = 0;
-                
-                row[r++] = flightResults.getLong(1);    // [00] F_ID
-                row[r++] = flightResults.getLong(3);    // [01] SEATS_LEFT
-                row[r++] = flightResults.getString(8);  // [02] AL_NAME
-                
-                // DEPARTURE AIRPORT
-                ai_stmt.setLong(1, f_depart_airport);
-                ai_results = ai_stmt.executeQuery();
-                boolean adv = ai_results.next();
-                assert(adv);
-                row[r++] = flightResults.getDate(5);    // [03] DEPART_TIME
-                row[r++] = ai_results.getString(1);     // [04] DEPART_AP_CODE
-                row[r++] = ai_results.getString(2);     // [05] DEPART_AP_NAME
-                row[r++] = ai_results.getString(3);     // [06] DEPART_AP_CITY
-                row[r++] = ai_results.getString(7);     // [07] DEPART_AP_COUNTRY
-                ai_results.close();
-                
-                // ARRIVAL AIRPORT
-                ai_stmt.setLong(1, f_arrive_airport);
-                ai_results = ai_stmt.executeQuery();
-                adv = ai_results.next();
-                assert(adv);
-                row[r++] = flightResults.getDate(7);    // [08] ARRIVE_TIME
-                row[r++] = ai_results.getString(1);     // [09] ARRIVE_AP_CODE
-                row[r++] = ai_results.getString(2);     // [10] ARRIVE_AP_NAME
-                row[r++] = ai_results.getString(3);     // [11] ARRIVE_AP_CITY
-                row[r++] = ai_results.getString(7);     // [12] ARRIVE_AP_COUNTRY
-                ai_results.close();
-                
-                finalResults.add(row);
-                if (debug)
-                    LOG.debug(String.format("Flight %d / %s /  %s -> %s / %s",
-                                            row[0], row[2], row[4], row[9], row[03]));
-            } // WHILE
-            //ai_stmt.close();
-            flightResults.close();
-            //f_stmt.close();
-        }
+           
         if (debug) {
             LOG.debug("Flight Information:\n" + finalResults);
         }
         return (finalResults);
-        } catch(SQLException esql) {
-        	LOG.error("caught SQLException in FindFlights:" + esql, esql);
-        	throw esql;
-        }catch(Exception e) {
-        	LOG.error("caught Exception in FindFlights:" + e, e);
-        }
-        return null;
     }
 }
