@@ -21,12 +21,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
+
 
 import org.apache.log4j.Logger;
 
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class DeleteReservation extends Procedure {
     private static final Logger LOG = Logger.getLogger(DeleteReservation.class);
@@ -77,77 +81,137 @@ public class DeleteReservation extends Procedure {
             " WHERE FF_C_ID = ? " +
             "   AND FF_AL_ID = ?");
     
-    public void run(Connection conn, long f_id, Long c_id, String c_id_str, String ff_c_id_str, Long ff_al_id) throws SQLException {
+    public void run(Connection conn, long f_id, Long c_id, String c_id_str, String ff_c_id_str, Long ff_al_id, int id) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         PreparedStatement stmt = null; 
         
         // If we weren't given the customer id, then look it up
-        if (c_id == null) {
+        if( c_id == null ) {
             boolean has_al_id = false;
             
+            String queryText = null;
             // Use the customer's id as a string
             if (c_id_str != null && c_id_str.length() > 0) {
-                stmt = this.getPreparedStatement(conn, GetCustomerByIdStr, c_id_str);
+                StringBuilder sb = new StringBuilder();
+                sb.append( "SELECT C_ID ");
+                sb.append( "FROM " );
+                sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+                sb.append( " WHERE C_ID_STR = ");
+                sb.append( RestQuery.quoteAndSanitize( c_id_str ) );
+                queryText = sb.toString();
             }
             // Otherwise use their FrequentFlyer information
             else {
                 assert(ff_c_id_str.isEmpty() == false);
                 assert(ff_al_id != null);
-                stmt = this.getPreparedStatement(conn, GetCustomerByFFNumber, ff_c_id_str);
+                StringBuilder sb = new StringBuilder();
+                sb.append( "SELECT C_ID, FF_AL_ID " );
+                sb.append( "FROM " );
+                sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+                sb.append( ", " );
+                sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+                sb.append( " WHERE FF_C_ID_STR = ");
+                sb.append( RestQuery.quoteAndSanitize( ff_c_id_str ) );
+                sb.append( " AND FF_C_ID = C_ID" );
+                queryText = sb.toString();
+
                 has_al_id = true;
             }
-            ResultSet results = stmt.executeQuery();
-            if (results.next()) {
-                c_id = results.getLong(1);
-                if (has_al_id) ff_al_id = results.getLong(2);
-            } else {
-                results.close();
-                throw new UserAbortException(String.format("No Customer record was found [c_id_str=%s, ff_c_id_str=%s, ff_al_id=%s]",
-                                                           c_id_str, ff_c_id_str, ff_al_id));
+            List<Map<String,Object>> resultSet = RestQuery.restReadQuery( queryText, id );
+            if( resultSet.isEmpty() ) {
+                throw new UserAbortException(String.format("No Customer record was found [c_id_str=%s, ff_c_id_str=%s, ff_al_id=%s]", c_id, ff_c_id_str, ff_al_id ) );
             }
-            results.close();
+            Map<String, Object> row = resultSet.get(0);
+            c_id = (Long) row.get( "C_ID" );
+            if( has_al_id ) {
+                ff_al_id = (Long) row.get( "FF_AL_ID" );
+            }
         }
 
         // Now get the result of the information that we need
         // If there is no valid customer record, then throw an abort
         // This should happen 5% of the time
-        stmt = this.getPreparedStatement(conn, GetCustomerReservation);
-        stmt.setLong(1, c_id);
-        stmt.setLong(2, f_id);
-        ResultSet results = stmt.executeQuery();
-        if (results.next() == false) {
-            results.close();
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT C_SATTR00, C_SATTR02, C_SATTR04, " );
+        sb.append( "C_IATTR00, C_IATTR02, C_IATTR04, C_IATTR06, " );
+        sb.append( "F_SEATS_LEFT, R_ID, R_SEAT, R_PRICE, R_IATTR00 " );
+        sb.append( "FROM " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( ", " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( ", " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE C_ID = " );
+        sb.append( c_id );
+        sb.append( " AND C_ID = R_C_ID AND F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND F_ID = R_F_ID ");
+
+
+        List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+        if( resultSet.isEmpty() ) {
             throw new UserAbortException(String.format("No Customer information record found for id '%d'", c_id));
         }
-        long c_iattr00 = results.getLong(4) + 1;
-        long seats_left = results.getLong(8); 
-        long r_id = results.getLong(9);
-        double r_price = results.getDouble(11);
-        results.close();
+        Map<String,Object> row = resultSet.get( 0 );
+        long c_iattr00 = (Long) row.get( "C_IATTR00" ) + 1;
+        long seats_left = (Long) row.get( "F_SEATS_LEFT" );
+        long r_id = (Long) row.get( "R_ID" ); 
+        double r_price = (Double) row.get( "R_PRICE" );
+
         int updated = 0;
         
         // Now delete all of the flights that they have on this flight
-        stmt = this.getPreparedStatement(conn, DeleteReservation, r_id, c_id, f_id);
-        updated = stmt.executeUpdate();
-        assert(updated == 1);
-        
+        sb = new StringBuilder();
+        sb.append( "DELETE FROM " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE R_ID = " );
+        sb.append( r_id );
+        sb.append( " AND R_C_ID = " );
+        sb.append( c_id );
+        sb.append( " AND R_F_ID = ");
+        sb.append( f_id );
+
+        RestQuery.restOtherQuery( sb.toString(), id );
+
         // Update Available Seats on Flight
-        stmt = this.getPreparedStatement(conn, UpdateFlight, f_id);
-        updated = stmt.executeUpdate();
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( " SET F_SEATS_LEFT = F_SEATS_LEFT + 1" );
+        sb.append( " WHERE F_ID = " );
+        sb.append( f_id );
+
+        RestQuery.restOtherQuery( sb.toString(), id );
         
         // Update Customer's Balance
-        stmt = this.getPreparedStatement(conn, UpdateCustomer, -1*r_price, c_iattr00, c_id);
-        updated = stmt.executeUpdate();
-        assert(updated == 1);
-        
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( " SET C_BALANCE = C_BALANCE + " );
+        double val = -1 * r_price;
+        sb.append( val );
+        sb.append( ", C_IATTR00 = " );
+        sb.append( c_iattr00 );
+        sb.append( ", C_IATTR10 = C_IATTR10 - 1," );
+        sb.append( " C_IATTR11 = C_IATTR10 - 1" );
+        sb.append( " WHERE C_ID = ");
+        sb.append( c_id );
+        RestQuery.restOtherQuery( sb.toString(), id );
+
         // Update Customer's Frequent Flyer Information (Optional)
         if (ff_al_id != null) {
-            stmt = this.getPreparedStatement(conn, UpdateFrequentFlyer, c_id, ff_al_id);
-            updated = stmt.executeUpdate();
-            assert(updated == 1) :
-                String.format("Failed to update FrequentFlyer info [c_id=%d, ff_al_id=%d]", c_id, ff_al_id);
+
+            sb = new StringBuilder();
+            sb.append( "UPDATE " );
+            sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+            sb.append( " SET FF_IATTR10 = FF_IATTR10 - 1 " );
+            sb.append( " WHERE FF_C_ID = " );
+            sb.append( c_id );
+            sb.append( " AND FF_AL_ID = " );
+            sb.append( ff_al_id );
+            RestQuery.restOtherQuery( sb.toString(), id );
+
         }
-        
         if (debug)
             LOG.debug(String.format("Deleted reservation on flight %d for customer %d [seatsLeft=%d]", f_id, c_id, seats_left+1));        
     }

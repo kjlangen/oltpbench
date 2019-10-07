@@ -433,7 +433,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         boolean successful = false;
         while(!successful){
         	try{
-        		proc.run(conn, f_id, c_id, c_id_str, ff_c_id_str, ff_al_id);
+        		proc.run(conn, f_id, c_id, c_id_str, ff_c_id_str, ff_al_id, this.getId() );
         		conn.commit();
         		successful = true;
         	}catch(SQLException esql){
