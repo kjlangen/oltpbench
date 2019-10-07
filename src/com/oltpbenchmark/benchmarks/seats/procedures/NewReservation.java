@@ -21,6 +21,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import com.oltpbenchmark.api.SQLStmt;
@@ -29,6 +31,7 @@ import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
 import com.oltpbenchmark.benchmarks.seats.util.CustomerId;
 import com.oltpbenchmark.benchmarks.seats.util.ErrorType;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class NewReservation extends Procedure {
     private static final Logger LOG = Logger.getLogger(NewReservation.class);
@@ -113,91 +116,173 @@ public class NewReservation extends Procedure {
             "   ? " +   // R_ATTR08
             ")");
     
-    public void run(Connection conn, long r_id, long c_id, long f_id, long seatnum, double price, long attrs[]) throws SQLException {
+    public void run(Connection conn, long r_id, long c_id, long f_id, long seatnum, double price, long attrs[], int id ) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         boolean found;
         
         // Flight Information
-        PreparedStatement stmt = this.getPreparedStatement(conn, GetFlight, f_id);
-        ResultSet results = stmt.executeQuery();
-        found = results.next();
-        if (found == false) {
-            results.close();
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT F_ID, F_AL_ID, F_SEATS_LEFT FROM " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( ", " );
+        sb.append( SEATSConstants.TABLENAME_AIRLINE );
+        sb.append( " WHERE F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND F_AL_ID = AL_ID" );
+
+        List<Map<String,Object>> results = RestQuery.restReadQuery( sb.toString(), id );
+        if( results.isEmpty() ) {
             throw new UserAbortException(ErrorType.INVALID_FLIGHT_ID +
                                          String.format(" Invalid flight #%d", f_id));
         }
-        long airline_id = results.getLong(1);
-        long seats_left = results.getLong(2);
-        results.close();
+        Map<String,Object> row = results.get( 0 );
+        long airline_id = (Long) row.get( "F_AL_ID" );
+        long seats_left = (Long) row.get( "F_SEATS_LEFT" );
         if (seats_left <= 0) {
             throw new UserAbortException(ErrorType.NO_MORE_SEATS +
                                          String.format(" No more seats available for flight #%d", f_id));
         }
         // Check if Seat is Available
-        stmt = this.getPreparedStatement(conn, CheckSeat, f_id, seatnum);
-        results = stmt.executeQuery();
-        found = results.next();
-        results.close();
-        if (found) {
+        
+        sb = new StringBuilder();
+        sb.append( "SELECT R_ID FROM" );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append(" WHERE R_F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND R_SEAT = ");
+        sb.append( seatnum );
+
+        results = RestQuery.restReadQuery( sb.toString(), id );
+        if( results.isEmpty() ) {
             throw new UserAbortException(ErrorType.SEAT_ALREADY_RESERVED +
                                          String.format(" Seat %d is already reserved on flight #%d", seatnum, f_id));
         }
-        // Check if the Customer already has a seat on this flight
-        stmt = this.getPreparedStatement(conn, CheckCustomer, f_id, c_id);
-        results = stmt.executeQuery();
-        found = results.next();
-        results.close();
-        if (found) {
+
+        sb = new StringBuilder();
+        sb.append( "SELECT R_ID, R_C_ID FROM "); 
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE R_F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND R_C_ID = " );
+        sb.append( c_id );
+        results = RestQuery.restReadQuery( sb.toString(), id );
+
+        if( results.isEmpty() ) {
             throw new UserAbortException(ErrorType.CUSTOMER_ALREADY_HAS_SEAT +
                                          String.format(" Customer %d already owns on a reservations on flight #%d", c_id, f_id));
         }
+
         // Get Customer Information
-        stmt = this.getPreparedStatement(conn, GetCustomer, c_id);
-        results = stmt.executeQuery();
-        found = results.next();
-        results.close();
-        if (found == false) {
+        sb = new StringBuilder();
+        sb.append( "SELECT C_BASE_AP_ID, C_BALANCE, C_SATTR00 FROM " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( " WHERE C_ID = " );
+        sb.append( c_id );
+        results = RestQuery.restReadQuery( sb.toString(), id );
+
+        if( results.isEmpty() ) 
             throw new UserAbortException(ErrorType.INVALID_CUSTOMER_ID + 
                                          String.format(" Invalid customer id: %d / %s", c_id, new CustomerId(c_id)));
-        }
         
-        stmt = this.getPreparedStatement(conn, InsertReservation);
-        stmt.setLong(1, r_id);
-        stmt.setLong(2, c_id);
-        stmt.setLong(3, f_id);
-        stmt.setLong(4, seatnum);
-        stmt.setDouble(5, price);
-        for (int i = 0; i < attrs.length; i++) {
-            stmt.setLong(6 + i, attrs[i]);
-        } // FOR
-        int updated = stmt.executeUpdate();
+        sb = new StringBuilder();
+        sb.append( "INSERT INTO " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " (R_ID, R_C_ID, R_F_ID, R_SEAT, R_PRICE, R_IATTR00, R_IATTR01, " );
+        sb.append( "R_IATTR02, R_IATTR03, R_IATTR04, R_IATTR05, R_IATTR06, R_IATTR07, " );
+        sb.append( "R_IATTR08) VALUES ( " );
+        sb.append( r_id );
+        sb.append( ", " );
+        sb.append( c_id );
+        sb.append( ", " );
+        sb.append( f_id );
+        sb.append( ", " );
+        sb.append( seatnum );
+        sb.append( ", " );
+        sb.append( price );
+        sb.append( ", " );
+        sb.append( attrs[0] );
+        sb.append( ", " );
+        sb.append( attrs[1] );
+        sb.append( ", " );
+        sb.append( attrs[2] );
+        sb.append( ", " );
+        sb.append( attrs[3] );
+        sb.append( ", " );
+        sb.append( attrs[4] );
+        sb.append( ", " );
+        sb.append( attrs[5] );
+        sb.append( ", " );
+        sb.append( attrs[6] );
+        sb.append( ", " );
+        sb.append( attrs[7] );
+        sb.append( ", " );
+        sb.append( attrs[8] );
+        sb.append( ") " );
+
+        int updated = RestQuery.restOtherQuery( sb.toString(), id );
+
         if (updated != 1) {
             String msg = String.format("Failed to add reservation for flight #%d - Inserted %d records for InsertReservation", f_id, updated);
             if (debug) LOG.warn(msg);
             throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
         }
         
-        updated = this.getPreparedStatement(conn, UpdateFlight, f_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( " SET F_SEATS_LEFT = F_SEATS_LEFT - 1" );
+        sb.append( " WHERE F_ID = ");
+        sb.append( f_id );
+
+        updated = RestQuery.restOtherQuery( sb.toString(), id );
         if (updated != 1) {
             String msg = String.format("Failed to add reservation for flight #%d - Updated %d records for UpdateFlight", f_id, updated);
             if (debug) LOG.warn(msg);
             throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
         }
         
-        updated = this.getPreparedStatement(conn, UpdateCustomer, attrs[0], attrs[1], attrs[2], attrs[3], c_id).executeUpdate();
-        if (updated != 1) {
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( " SET C_IATTR10 = C_IATTR10 + 1, " );
+        sb.append( " C_IATTR11 = C_IATTR11 + 1, "  );
+        sb.append( " C_IATTR12 = ");
+        sb.append( attrs[0] ); 
+        sb.append( ", C_IATTR13 = ");
+        sb.append( attrs[1] );
+        sb.append( ", C_IATTR14 = " );
+        sb.append( attrs[2] );
+        sb.append( ", C_IATTR15 = ");
+        sb.append( attrs[3] );
+        sb.append( "WHERE C_ID = ");
+        sb.append( c_id );
+
+        updated = RestQuery.restOtherQuery( sb.toString(), id );
+        if( updated != 1 ) {
             String msg = String.format("Failed to add reservation for flight #%d - Updated %d records for UpdateCustomer", f_id, updated);
             if (debug) LOG.warn(msg);
             throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
         }
         
         // We don't care if we updated FrequentFlyer 
-        updated = this.getPreparedStatement(conn, UpdateFrequentFlyer, attrs[4], attrs[5], attrs[6], attrs[7], c_id, airline_id).executeUpdate();
-//        if (updated != 1) {
-//            String msg = String.format("Failed to add reservation for flight #%d - Updated %d records for UpdateFre", f_id, updated);
-//            if (debug) LOG.warn(msg);
-//            throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
-//        }
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+        sb.append( " SET FF_IATTR10 = FF_IATTR10 + 1, " );
+        sb.append( " FF_IATTR11 = " );
+        sb.append( attrs[4] );
+        sb.append( ", FF_IATTR12 = " );
+        sb.append( attrs[5] );
+        sb.append( ", FF_IATTR13 = " );
+        sb.append( attrs[6] );
+        sb.append( ", FF_IATTR14 = " );
+        sb.append( attrs[7] );
+        sb.append( " WHERE FF_C_ID = " );
+        sb.append( c_id );
+        sb.append( " AND FF_AL_ID = " );
+        sb.append( airline_id );
+
+        updated = RestQuery.restOtherQuery( sb.toString(), id );
 
         if (debug) 
             LOG.debug(String.format("Reserved new seat on flight %d for customer %d [seatsLeft=%d]",
