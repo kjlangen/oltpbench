@@ -20,6 +20,9 @@ package com.oltpbenchmark.benchmarks.seats.procedures;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
+
 
 import org.apache.log4j.Logger;
 
@@ -28,6 +31,7 @@ import com.oltpbenchmark.api.Procedure;
 
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
 import com.oltpbenchmark.benchmarks.seats.util.ErrorType;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class UpdateCustomer extends Procedure {
     private static final Logger LOG = Logger.getLogger(UpdateCustomer.class);
@@ -71,50 +75,93 @@ public class UpdateCustomer extends Procedure {
         "   AND FF_AL_ID = ? "
     );
     
-    public void run(Connection conn, Long c_id, String c_id_str, Long update_ff, long attr0, long attr1) throws SQLException {
+    public void run(Connection conn, Long c_id, String c_id_str, Long update_ff, long attr0, long attr1, int id ) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         
         // Use C_ID_STR to get C_ID
         if (c_id == null) {
+
+            StringBuilder sb = new StringBuilder();
             assert(c_id_str != null);
             assert(c_id_str.isEmpty() == false);
-            ResultSet rs = this.getPreparedStatement(conn, GetCustomerIdStr, c_id_str).executeQuery();
-            if (rs.next()) {
-                c_id = rs.getLong(1);
+
+            sb.append( "SELECT C_ID FROM " );
+            sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+            sb.append( " WHERE C_ID_STR = '" );
+            sb.append( c_id_str );
+            sb.append( "'" );
+
+            List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+            if( !resultSet.isEmpty() ) {
+                Map<String,Object> row = resultSet.get( 0 );
+                c_id = (Long) row.get( "C_ID" );
             } else {
-                rs.close();
                 throw new UserAbortException(String.format("No Customer information record found for string '%s'", c_id_str));
             }
-            rs.close();
         }
+
         assert(c_id != null);
         
-        ResultSet rs = this.getPreparedStatement(conn, GetCustomer, c_id).executeQuery();
-        if (rs.next() == false) {
-            rs.close();
+        // Normally the retrieve all fields here but they are unused...
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT C_ID, C_ID_STR, C_BASE_AP_ID, C_BALANCE FROM " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( " WHERE C_ID = " );
+        sb.append( c_id );
+        List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+        if( resultSet.isEmpty() ) {
             throw new UserAbortException(String.format("No Customer information record found for id '%d'", c_id));
         }
-        assert(c_id == rs.getLong(1));
-        long base_airport = rs.getLong(3);
-        rs.close();
+        Map<String, Object> apRow = resultSet.get( 0 );
+        long base_airport = (Long) apRow.get( "C_BASE_AP_ID" );
         
         // Get their airport information
-        // TODO: Do something interesting with this data
-        ResultSet airport_results = this.getPreparedStatement(conn, GetBaseAirport, base_airport).executeQuery();
-        boolean adv = airport_results.next();
-        airport_results.close();
-        assert(adv);
+        sb = new StringBuilder();
+        sb.append( "SELECT AP_ID FROM " );
+        sb.append( SEATSConstants.TABLENAME_AIRPORT );
+        sb.append( "," );
+        sb.append( SEATSConstants.TABLENAME_COUNTRY );
+        sb.append( " WHERE AP_ID = " );
+        sb.append( base_airport );
+        sb.append( " AND AP_CO_ID = CO_ID" );
+        
+        resultSet = RestQuery.restReadQuery( sb.toString(), id );
+        assert( !resultSet.isEmpty() );
         
         if (update_ff != null) {
-            ResultSet ff_results = this.getPreparedStatement(conn, GetFrequentFlyers, c_id).executeQuery(); 
-            while (ff_results.next()) {
-                long ff_al_id = ff_results.getLong(2); 
-                this.getPreparedStatement(conn, UpdatFrequentFlyers, attr0, attr1, c_id, ff_al_id).executeUpdate();
-            } // WHILE
-            ff_results.close();
+            sb = new StringBuilder();
+            sb.append( "SELECT FF_AL_ID FROM " );
+            sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+            sb.append( " WHERE FF_C_ID = " );
+            sb.append( c_id );
+            resultSet = RestQuery.restReadQuery( sb.toString(), id );
+            for( Map<String,Object> ffRow : resultSet ) {
+                long ff_al_id = (Long) ffRow.get( "FF_AL_ID" );
+                sb = new StringBuilder();
+                sb.append( "UPDATE " );
+                sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+                sb.append( " SET FF_IATTR00 = ");
+                sb.append( attr0 );
+                sb.append( ", FF_IATTR01 = " );
+                sb.append( attr1 );
+                sb.append( " WHERE FF_C_ID = " );
+                sb.append( c_id );
+                sb.append( " AND FF_AL_ID = " );
+                sb.append( ff_al_id );
+                RestQuery.restOtherQuery( sb.toString(), id );
+            }
         }
-        
-        int updated = this.getPreparedStatement(conn, UpdateCustomer, attr0, attr1, c_id).executeUpdate();
+
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_CUSTOMER );
+        sb.append( " SET C_IATTR00 = " );
+        sb.append( attr0 );
+        sb.append( " , C_IATTR01 = " );
+        sb.append( attr1 );
+        sb.append( " WHERE C_ID = " );
+        sb.append( c_id );
+        int updated = RestQuery.restOtherQuery( sb.toString(), id );
         if (updated != 1) {
             String msg = String.format("Failed to update customer #%d - Updated %d records", c_id, updated);
             if (debug) LOG.warn(msg);

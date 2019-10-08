@@ -43,6 +43,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import com.oltpbenchmark.api.SQLStmt;
@@ -50,6 +52,7 @@ import com.oltpbenchmark.api.Procedure;
 
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
 import com.oltpbenchmark.benchmarks.seats.util.ErrorType;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class UpdateReservation extends Procedure {
     private static final Logger LOG = Logger.getLogger(UpdateReservation.class);
@@ -81,38 +84,61 @@ public class UpdateReservation extends Procedure {
         ReserveSeat3,
     };
     
-    public void run(Connection conn, long r_id, long f_id, long c_id, long seatnum, long attr_idx, long attr_val) throws SQLException {
+    public void run(Connection conn, long r_id, long f_id, long c_id, long seatnum, long attr_idx, long attr_val, int id) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         assert(attr_idx >= 0);
         assert(attr_idx < ReserveSeats.length);
         boolean found;
         
-        PreparedStatement stmt = null;
-        ResultSet results = null;
-        
         // Check if Seat is Available
-        stmt = this.getPreparedStatement(conn, CheckSeat, f_id, seatnum);
-        results = stmt.executeQuery();
-        found = results.next();
-        results.close();
-        if (found) {
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT R_ID FROM " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE R_F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND R_SEAT = ");
+        sb.append( seatnum );
+
+        List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
+        if( !resultSet.isEmpty() ) {
             throw new UserAbortException(ErrorType.SEAT_ALREADY_RESERVED +
                                          String.format(" Seat %d is already reserved on flight #%d", seatnum, f_id));
         }
+
+        sb = new StringBuilder();
+        sb.append( "SELECT R_ID FROM " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " WHERE R_F_ID = " );
+        sb.append( f_id );
+        sb.append( " AND R_C_ID = " );
+        sb.append( c_id );
+        resultSet = RestQuery.restReadQuery( sb.toString(), id );
+
         // Check if the Customer already has a seat on this flight
-        stmt = this.getPreparedStatement(conn, CheckCustomer, f_id, c_id);
-        results = stmt.executeQuery();
-        found = results.next();
-        results.close();
-        if (found == false) {
+        if( resultSet.isEmpty() ) {
             throw new UserAbortException(ErrorType.CUSTOMER_ALREADY_HAS_SEAT +
                                          String.format(" Customer %d does not have an existing reservation on flight #%d", c_id, f_id));
         }
         
         // Update the seat reservation for the customer
-        stmt = this.getPreparedStatement(conn, ReserveSeats[(int)attr_idx], seatnum, attr_val, r_id, c_id, f_id);
-        int updated = stmt.executeUpdate();
-        if (updated != 1) {
+        sb = new StringBuilder();
+        sb.append( "UPDATE " );
+        sb.append( SEATSConstants.TABLENAME_RESERVATION );
+        sb.append( " SET R_SEAT = " );
+        sb.append( seatnum );
+        sb.append( ", R_IATTR0" );
+        sb.append( attr_idx );
+        sb.append( " = " );
+        sb.append( attr_val );
+        sb.append( " WHERE R_ID = " );
+        sb.append( r_id );
+        sb.append( " AND R_C_ID = " );
+        sb.append( c_id );
+        sb.append( " AND R_F_ID = " );
+        sb.append( f_id );
+        int updated = RestQuery.restOtherQuery( sb.toString(), id );
+
+        if( updated != 1 ) {
             String msg = String.format("Failed to update reservation on flight %d for customer #%d - Updated %d records", f_id, c_id, updated);
             if (debug) LOG.warn(msg);
             throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
