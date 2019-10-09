@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://localhost:5432/seats</DBUrl>
-    <DBRestHost>18.205.156.81</DBRestHost>
+    <DBUrl>jdbc:postgresql://34.221.161.47:5432/seats</DBUrl>
+    <DBRestHost>3.92.210.227</DBRestHost>
     <username>kronos</username>
     <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
@@ -16,7 +16,7 @@
     <scalefactor>50</scalefactor>
 
     <!-- The workload -->
-    <terminals>10</terminals>
+    <terminals>1</terminals>
     <works>
         <work>
           <time>300</time>

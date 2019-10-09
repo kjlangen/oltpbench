@@ -679,7 +679,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         					   reservation.flight_id.encode(),
         					   reservation.seatnum,
         					   price,
-        					   attributes);
+        					   attributes, this.getId() );
         		conn.commit();
         		successful = true;
   //      		LOG.debug("Inside loop, Count is "+count +" Successful is "+successful);
@@ -736,7 +736,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         boolean successful = false;
         while(!successful){
         	try{
-        	    proc.run(conn, c_id, c_id_str, update_ff, attr0, attr1);
+        	    proc.run(conn, c_id, c_id_str, update_ff, attr0, attr1, this.getId() );
         		conn.commit();
         		successful = true;
         	}catch(SQLException esql){
@@ -796,7 +796,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         						r.customer_id.encode(),
         						seatnum,
         						attribute_idx,
-        						value);
+        						value, this.getId() );
         		conn.commit();
         		successful = true;
         	}catch(SQLException esql){
