@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -164,6 +165,8 @@ public class SEATSProfile {
         }
 
         // Tuple Code to Tuple Id Mapping
+        // XXX This is all local, no DB specific crap here.
+
         for (String xref[] : SEATSConstants.CODE_TO_ID_COLUMNS) {
             assert (xref.length == 3);
             String tableName = xref[0];
@@ -189,6 +192,13 @@ public class SEATSProfile {
         // 'USA' in the AP_CO_ID column. We can use mapping to get the id number
         // for 'USA'. Long winded and kind of screwy, but hey what else are
         // you going to do?
+
+        // XXX
+        // We would need to create a structure holding tables and all of their columns
+        // and each foreign key that each column corresponds to.
+        // Alternative is to dump this structure and read it from disk
+        // ACTUALLY, this uses a local copy of the DB's DDL. No need to go remote.
+
         for (Table catalog_tbl : this.catalog.getTables()) {
             for (Column catalog_col : catalog_tbl.getColumns()) {
                 Column catalog_fkey_col = catalog_col.getForeignKey();
@@ -200,6 +210,8 @@ public class SEATSProfile {
                 }
             } // FOR
         } // FOR
+
+        //XXX After creating this, every worker "loads a profile"
 
     }
 
@@ -316,8 +328,13 @@ public class SEATSProfile {
 
             // Otherwise we have to go fetch everything again
             LoadConfig proc = worker.getProcedure(LoadConfig.class);
-            ResultSet results[] = proc.run(worker.getConnection());
+            List<List<Map<String,Object>>> resultSet = proc.run(worker.getConnection(), worker.getId() );
+            ResultSet results[] = new ResultSet[6];
             int result_idx = 0;
+
+
+            // XXX These get all kinds of crap from the database. Probably very obnoxious to
+            // construct without the DB.
 
             // CONFIG_PROFILE
             this.loadConfigProfile(results[result_idx++]);

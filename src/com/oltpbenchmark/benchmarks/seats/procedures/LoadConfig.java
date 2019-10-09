@@ -19,11 +19,15 @@ package com.oltpbenchmark.benchmarks.seats.procedures;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.api.Procedure;
 
 import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class LoadConfig extends Procedure {
 
@@ -58,16 +62,49 @@ public class LoadConfig extends Procedure {
         " LIMIT " + SEATSConstants.CACHE_LIMIT_FLIGHT_IDS
     );
     
-    public ResultSet[] run(Connection conn) throws SQLException {
-        ResultSet results[] = new ResultSet[6];
-        int result_idx = 0;
+    public List<List<Map<String,Object>>> run( Connection conn, int id ) throws SQLException {
+        List<List<Map<String,Object>>> resultSets = new LinkedList<>();
         
-        results[result_idx++] = this.getPreparedStatement(conn, getConfigProfile).executeQuery();
-        results[result_idx++] = this.getPreparedStatement(conn, getConfigHistogram).executeQuery();
-        results[result_idx++] = this.getPreparedStatement(conn, getCountryCodes).executeQuery();
-        results[result_idx++] = this.getPreparedStatement(conn, getAirportCodes).executeQuery();
-        results[result_idx++] = this.getPreparedStatement(conn, getAirlineCodes).executeQuery();
-        results[result_idx++] = this.getPreparedStatement(conn, getFlights).executeQuery();
-        return (results);
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT  " );
+        sb.append( "CFP_SCALE_FACTOR, CFP_AIPORT_MAX_CUSTOMER, ");
+        sb.append( "CFP_FLIGHT_START, CFP_FLIGHT_UPCOMING, ");
+        sb.append( "CFP_FLIGHT_PAST_DAYS, CFP_FLIGHT_FUTURE_DAYS, " );
+        sb.append( "CFP_FLIGHT_OFFSET, CFP_RESERVATION_OFFSET, " );
+        sb.append( "CFP_NUM_RESERVATIONS, CFP_CODE_IDS_XREFS FROM " );
+        sb.append( SEATSConstants.TABLENAME_CONFIG_PROFILE );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+
+        sb = new StringBuilder();
+        sb.append( "SELECT " );
+        sb.append( "CFH_NAME, CFH_DATA, CFH_IS_AIRPORT FROM ");
+        sb.append( SEATSConstants.TABLENAME_CONFIG_HISTOGRAMS );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT CO_ID, CO_CODE_3 FROM " );
+        sb.append( SEATSConstants.TABLENAME_COUNTRY );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT AP_ID, AP_CODE FROM " );
+        sb.append( SEATSConstants.TABLENAME_AIRPORT );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT AL_ID, AL_IATA_CODE FROM " );
+        sb.append( SEATSConstants.TABLENAME_AIRLINE );
+        sb.append( " WHERE AL_IATA_CODE != ''" );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT f_id FROM " );
+        sb.append( SEATSConstants.TABLENAME_FLIGHT );
+        sb.append( " ORDER BY F_DEPART_TIME DESC LIMIT " );
+        sb.append( SEATSConstants.CACHE_LIMIT_FLIGHT_IDS );
+        resultSets.add( RestQuery.restReadQuery( sb.toString(), id ) );
+
+        return resultSets;
     }
 }
