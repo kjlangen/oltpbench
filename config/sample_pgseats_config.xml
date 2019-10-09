@@ -13,7 +13,7 @@
     <uploadUrl></uploadUrl>
     
     <!-- Scalefactor in SEATS scales by *1000 the number of customers-->
-    <scalefactor>10000</scalefactor>
+    <scalefactor>50</scalefactor>
 
     <!-- The workload -->
     <terminals>10</terminals>
