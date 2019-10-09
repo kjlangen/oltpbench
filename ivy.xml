@@ -58,7 +58,7 @@
 		<dependency org="com.sun.jersey" name="jersey-client" rev="1.19.4" />
 		<dependency org="com.sun.jersey" name="jersey-core" rev="1.19.4" />
 		<dependency org="com.sun.jersey" name="jersey-server" rev="1.19.4" />
-		<dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.1.1" />
+		<dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.0" />
 
 		<dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.9.13" />
 	</dependencies>

@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
@@ -328,8 +329,7 @@ public class SEATSProfile {
 
             // Otherwise we have to go fetch everything again
             LoadConfig proc = worker.getProcedure(LoadConfig.class);
-            List<List<Map<String,Object>>> resultSet = proc.run(worker.getConnection(), worker.getId() );
-            ResultSet results[] = new ResultSet[6];
+            List<List<Map<String,Object>>> results = proc.run(worker.getConnection(), worker.getId() );
             int result_idx = 0;
 
 
@@ -337,24 +337,20 @@ public class SEATSProfile {
             // construct without the DB.
 
             // CONFIG_PROFILE
-            this.loadConfigProfile(results[result_idx++]);
+            this.loadConfigProfile(results.get(result_idx++));
 
             // CONFIG_HISTOGRAMS
-            this.loadConfigHistograms(results[result_idx++]);
+            this.loadConfigHistograms(results.get(result_idx++));
 
             // CODE XREFS
             for (int i = 0; i < SEATSConstants.CODE_TO_ID_COLUMNS.length; i++) {
                 String codeCol = SEATSConstants.CODE_TO_ID_COLUMNS[i][1];
                 String idCol = SEATSConstants.CODE_TO_ID_COLUMNS[i][2];
-                this.loadCodeXref(results[result_idx++], codeCol, idCol);
+                this.loadCodeXref(results.get(result_idx++), codeCol, idCol);
             } // FOR
 
             // CACHED FLIGHT IDS
-            this.loadCachedFlights(results[result_idx++]);
-
-            for (ResultSet rs : results) {
-                rs.close();
-            }
+            this.loadCachedFlights(results.get(result_idx++));
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Loaded profile:\n" + this.toString());
@@ -367,30 +363,32 @@ public class SEATSProfile {
         } // SYNCH
     }
 
-    private final void loadConfigProfile(ResultSet vt) throws SQLException {
-        boolean adv = vt.next();
-        assert (adv);
-        int col = 1;
-        this.scale_factor = vt.getDouble(col++);
-        JSONUtil.fromJSONString(this.airport_max_customer_id, vt.getString(col++));
-        this.flight_start_date.setTime(vt.getTimestamp(col++).getTime());
-        this.flight_upcoming_date = vt.getTimestamp(col++);
-        this.flight_past_days = vt.getLong(col++);
-        this.flight_future_days = vt.getLong(col++);
-        this.flight_upcoming_offset = vt.getLong(col++);
-        this.reservation_upcoming_offset = vt.getLong(col++);
-        this.num_reservations = vt.getLong(col++);
+    private final void loadConfigProfile(List<Map<String,Object>> resultSet) throws SQLException {
+        assert ( !resultSet.isEmpty() );
+        Map<String, Object> row = resultSet.get( 0 );
+        
+        this.scale_factor = (Double) row.get( "CFP_SCALE_FACTOR" );
+        JSONUtil.fromJSONString( this.airport_max_customer_id, (String) row.get( "CFP_AIPORT_MAX_CUSTOMER" ) );
+        String start_date = (String) row.get( "CFP_FLIGHT_START" );
+        this.flight_start_date.setTime(Timestamp.valueOf( start_date ).getTime());
+        String upcoming_date = (String) row.get( "CFP_FLIGHT_UPCOMING" );
+        this.flight_upcoming_date = Timestamp.valueOf( upcoming_date );
+        this.flight_past_days = (Long) row.get( "CFP_FLIGHT_PAST_DAYS" );
+        this.flight_future_days = (Long) row.get( "CFP_FLIGHT_FUTURE_DAYS" );
+        this.flight_upcoming_offset = (Long) row.get( "CFP_FLIGHT_OFFSET" );
+        this.reservation_upcoming_offset = (Long) row.get( "CFP_RESERVATION_OFFSET" );
+        this.num_reservations = (Long) row.get( "CFP_NUM_RESERVATIONS" );
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Loaded %s data", SEATSConstants.TABLENAME_CONFIG_PROFILE));
         }
     }
 
-    private final void loadConfigHistograms(ResultSet vt) throws SQLException {
-        while (vt.next()) {
+    private final void loadConfigHistograms( List<Map<String,Object>> resultSet ) throws SQLException {
+        for( Map<String, Object> row : resultSet ) {
             int col = 1;
-            String name = vt.getString(col++);
-            Histogram<String> h = JSONUtil.fromJSONString(new Histogram<String>(), vt.getString(col++));
-            boolean is_airline = (vt.getLong(col++) == 1);
+            String name = (String) row.get( "CFH_NAME" );
+            Histogram<String> h = JSONUtil.fromJSONString(new Histogram<String>(), (String) row.get( "CFH_DATA" ) );
+            boolean is_airline = (((Long) row.get( "CFH_IS_AIRPORT" )) == 1 );
 
             if (is_airline) {
                 this.airport_histograms.put(name, h);
@@ -403,18 +401,17 @@ public class SEATSProfile {
                     LOG.trace(String.format("Loaded %d records for %s histogram", h.getValueCount(), name));
                 }
             }
-        } // WHILE
+        } // FOR
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Loaded %s data", SEATSConstants.TABLENAME_CONFIG_HISTOGRAMS));
         }
     }
 
-    private final void loadCodeXref(ResultSet vt, String codeCol, String idCol) throws SQLException {
-        Map<String, Long> m = this.code_id_xref.get(idCol);
-        while (vt.next()) {
-            int col = 1;
-            long id = vt.getLong(col++);
-            String code = vt.getString(col++);
+    private final void loadCodeXref( List<Map<String,Object>> resultSet, String codeCol, String idCol ) throws SQLException {
+        Map<String, Long> m = this.code_id_xref.get( idCol );
+        for( Map<String, Object> row : resultSet ) {
+            long id = (Long) row.get( idCol );
+            String code = (String) row.get( codeCol );
             m.put(code, id);
         } // WHILE
         if (LOG.isDebugEnabled()) {
@@ -422,11 +419,12 @@ public class SEATSProfile {
         }
     }
 
-    private final void loadCachedFlights(ResultSet vt) throws SQLException {
+    private final void loadCachedFlights( List<Map<String, Object>> resultSet )  throws SQLException {
         int limit = 1;
-        while (vt.next() && limit++ < SEATSConstants.CACHE_LIMIT_FLIGHT_IDS) {
-            int col = 1;
-            long f_id = vt.getLong(col++);
+        Iterator<Map<String,Object>> rowIter = resultSet.iterator();
+        while (rowIter.hasNext() && limit++ < SEATSConstants.CACHE_LIMIT_FLIGHT_IDS) {
+            Map<String,Object> row = rowIter.next();
+            long f_id = (Long) row.get( "f_id" );
             FlightId flight_id = new FlightId(f_id);
             this.cached_flight_ids.add(flight_id);
         } // WHILE
