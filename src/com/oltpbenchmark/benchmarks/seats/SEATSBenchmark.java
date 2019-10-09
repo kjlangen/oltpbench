@@ -33,6 +33,8 @@ import com.oltpbenchmark.benchmarks.seats.procedures.LoadConfig;
 import com.oltpbenchmark.catalog.Table;
 import com.oltpbenchmark.util.RandomGenerator;
 
+import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
+
 public class SEATSBenchmark extends BenchmarkModule {
 
     private final RandomGenerator rng = new RandomGenerator((int) System.currentTimeMillis());
@@ -40,6 +42,9 @@ public class SEATSBenchmark extends BenchmarkModule {
     public SEATSBenchmark(WorkloadConfiguration workConf) {
         super("seats", workConf, true);
         this.registerSupplementalProcedure(LoadConfig.class);
+
+	RestQuery.setHostname(workConf.getDBRestHost());
+
     }
 
     public File getDataDir() {
