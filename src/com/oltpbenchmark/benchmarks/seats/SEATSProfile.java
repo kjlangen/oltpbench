@@ -366,18 +366,19 @@ public class SEATSProfile {
     private final void loadConfigProfile(List<Map<String,Object>> resultSet) throws SQLException {
         assert ( !resultSet.isEmpty() );
         Map<String, Object> row = resultSet.get( 0 );
+	LOG.warn( "Got row: " + row.keySet() );
         
-        this.scale_factor = (Double) row.get( "CFP_SCALE_FACTOR" );
-        JSONUtil.fromJSONString( this.airport_max_customer_id, (String) row.get( "CFP_AIPORT_MAX_CUSTOMER" ) );
-        String start_date = (String) row.get( "CFP_FLIGHT_START" );
-        this.flight_start_date.setTime(Timestamp.valueOf( start_date ).getTime());
-        String upcoming_date = (String) row.get( "CFP_FLIGHT_UPCOMING" );
-        this.flight_upcoming_date = Timestamp.valueOf( upcoming_date );
-        this.flight_past_days = (Long) row.get( "CFP_FLIGHT_PAST_DAYS" );
-        this.flight_future_days = (Long) row.get( "CFP_FLIGHT_FUTURE_DAYS" );
-        this.flight_upcoming_offset = (Long) row.get( "CFP_FLIGHT_OFFSET" );
-        this.reservation_upcoming_offset = (Long) row.get( "CFP_RESERVATION_OFFSET" );
-        this.num_reservations = (Long) row.get( "CFP_NUM_RESERVATIONS" );
+        this.scale_factor = (Double) row.get( "cfp_scale_factor" );
+        JSONUtil.fromJSONString( this.airport_max_customer_id, (String) row.get( "cfp_aiport_max_customer" ) );
+        Long start_date = (Long) row.get( "cfp_flight_start" );
+        this.flight_start_date.setTime(new Timestamp(start_date).getTime());
+        Long upcoming_date = (Long) row.get( "cfp_flight_upcoming" );
+        this.flight_upcoming_date = new Timestamp( upcoming_date );
+        this.flight_past_days = (Integer) row.get( "cfp_flight_past_days" );
+        this.flight_future_days = (Integer) row.get( "cfp_flight_future_days" );
+        this.flight_upcoming_offset = new Long( (Integer) row.get( "cfp_flight_offset" ) );
+        this.reservation_upcoming_offset = new Long( (Integer) row.get( "cfp_reservation_offset" ) );
+        this.num_reservations = new Long( (Integer) row.get( "cfp_num_reservations" ) );
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Loaded %s data", SEATSConstants.TABLENAME_CONFIG_PROFILE));
         }
@@ -386,9 +387,9 @@ public class SEATSProfile {
     private final void loadConfigHistograms( List<Map<String,Object>> resultSet ) throws SQLException {
         for( Map<String, Object> row : resultSet ) {
             int col = 1;
-            String name = (String) row.get( "CFH_NAME" );
-            Histogram<String> h = JSONUtil.fromJSONString(new Histogram<String>(), (String) row.get( "CFH_DATA" ) );
-            boolean is_airline = (((Long) row.get( "CFH_IS_AIRPORT" )) == 1 );
+            String name = (String) row.get( "cfh_name" );
+            Histogram<String> h = JSONUtil.fromJSONString(new Histogram<String>(), (String) row.get( "cfh_data" ) );
+            boolean is_airline = (((Integer) row.get( "cfh_is_airport" )) == 1 );
 
             if (is_airline) {
                 this.airport_histograms.put(name, h);
@@ -410,7 +411,7 @@ public class SEATSProfile {
     private final void loadCodeXref( List<Map<String,Object>> resultSet, String codeCol, String idCol ) throws SQLException {
         Map<String, Long> m = this.code_id_xref.get( idCol );
         for( Map<String, Object> row : resultSet ) {
-            long id = (Long) row.get( idCol );
+            long id = new Long( (Integer) row.get( idCol.toLowerCase() ) );
             String code = (String) row.get( codeCol );
             m.put(code, id);
         } // WHILE

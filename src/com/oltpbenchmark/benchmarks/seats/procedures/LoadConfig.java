@@ -30,8 +30,7 @@ import com.oltpbenchmark.benchmarks.seats.SEATSConstants;
 import com.oltpbenchmark.benchmarks.seats.util.RestQuery;
 
 public class LoadConfig extends Procedure {
-
-    // -----------------------------------------------------------------
+// -----------------------------------------------------------------
     // STATEMENTS
     // -----------------------------------------------------------------
     
