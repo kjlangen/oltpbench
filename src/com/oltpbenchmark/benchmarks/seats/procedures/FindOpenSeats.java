@@ -105,10 +105,10 @@ public class FindOpenSeats extends Procedure {
         List<Map<String,Object>> flightRows = RestQuery.restReadQuery( sb.toString(), id );
         Map<String,Object> flightData = flightRows.get( 0 );
 
-        double base_price = (Double) flightData.get( "F_BASE_PRICE" );
-        long seats_total = (Long) flightData.get( "F_SEATS_TOTAL" );
-        long seats_left = (Long) flightData.get( "F_SEATS_LEFT" );
-        double seat_price = (Double) flightData.get( "F_PRICE" );
+        double base_price = (Double) flightData.get( "f_base_price" );
+        long seats_total = (Long) flightData.get( "f_seats_total" );
+        long seats_left = (Long) flightData.get( "f_seats_left" );
+        double seat_price = (Double) flightData.get( "f_price" );
         double _seat_price = base_price + (base_price * (1.0 - (seats_left/(double)seats_total)));
         if (debug) 
             LOG.debug(String.format("Flight %d - SQL[%.2f] <-> JAVA[%.2f] [basePrice=%f, total=%d, left=%d]",
