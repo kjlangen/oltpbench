@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
 public class RestQuery
 {
 	private static final Logger LOG = Logger.getLogger(RestQuery.class);
-	private static String hostname = "3.92.210.227";
+	private static String hostname = "0.0.0.0";
 
 	public static void setHostname(String host)
 	{
