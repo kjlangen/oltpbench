@@ -106,8 +106,8 @@ public class FindOpenSeats extends Procedure {
         Map<String,Object> flightData = flightRows.get( 0 );
 
         double base_price = (Double) flightData.get( "f_base_price" );
-        long seats_total = (Long) flightData.get( "f_seats_total" );
-        long seats_left = (Long) flightData.get( "f_seats_left" );
+        long seats_total = new Long( (Integer) flightData.get( "f_seats_total" ) );
+        long seats_left = new Long( (Integer) flightData.get( "f_seats_left" ) );
         double seat_price = (Double) flightData.get( "f_price" );
         double _seat_price = base_price + (base_price * (1.0 - (seats_left/(double)seats_total)));
         if (debug) 
@@ -125,8 +125,8 @@ public class FindOpenSeats extends Procedure {
 
         List<Map<String,Object>> seats = RestQuery.restReadQuery( sb.toString(), id );
         for( Map<String, Object> seatRow : seats ) {
-            long r_id = (Long) seatRow.get( "R_ID" );
-            int seatnum = (Integer) seatRow.get( "R_SEAT" );
+            long r_id = new Long( (Integer) seatRow.get( "r_id" ) );
+            int seatnum = (Integer) seatRow.get( "r_seat" );
             if (debug) LOG.debug(String.format("Reserved Seat: fid %d / rid %d / seat %d", f_id, r_id, seatnum));
             assert(seatmap[seatnum] == -1) : "Duplicate seat reservation: R_ID=" + r_id;
             seatmap[seatnum] = 1;

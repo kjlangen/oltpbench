@@ -136,8 +136,8 @@ public class NewReservation extends Procedure {
                                          String.format(" Invalid flight #%d", f_id));
         }
         Map<String,Object> row = results.get( 0 );
-        long airline_id = (Long) row.get( "F_AL_ID" );
-        long seats_left = (Long) row.get( "F_SEATS_LEFT" );
+        long airline_id = new Long( (Integer) row.get( "f_al_id" ) );
+        long seats_left = new Long( (Integer) row.get( "f_seats_left" ) );
         if (seats_left <= 0) {
             throw new UserAbortException(ErrorType.NO_MORE_SEATS +
                                          String.format(" No more seats available for flight #%d", f_id));
@@ -145,7 +145,7 @@ public class NewReservation extends Procedure {
         // Check if Seat is Available
         
         sb = new StringBuilder();
-        sb.append( "SELECT R_ID FROM" );
+        sb.append( "SELECT R_ID FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
         sb.append(" WHERE R_F_ID = " );
         sb.append( f_id );

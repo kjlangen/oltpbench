@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://34.221.161.47:5432/seats</DBUrl>
-    <DBRestHost>3.92.210.227</DBRestHost>
+    <DBUrl>jdbc:postgresql://34.220.81.136:5432/seats</DBUrl>
+    <DBRestHost>52.3.252.244</DBRestHost>
     <username>kronos</username>
     <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>

@@ -112,8 +112,8 @@ public class FindFlights extends Procedure {
             String startTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(start_date);
             String endTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(end_date);
             for( Map<String,Object> apRow : resultSet ) {
-                long aid = (Long) apRow.get( "DP_AP_ID1" );
-                double aid_distance = (Double) apRow.get( "D_DISTANCE" );
+                long aid = new Long( (Integer) apRow.get( "dp_ap_id1" ) );
+                double aid_distance = (Double) apRow.get( "d_distance" );
 
 
 
@@ -137,15 +137,15 @@ public class FindFlights extends Procedure {
                 List<Map<String,Object>> flights = RestQuery.restReadQuery( sb.toString(), id );
 
                 for( Map<String,Object> flightRow : flights ) {
-                    long f_depart_airport = (Long) flightRow.get( "F_DEPART_AP_ID" );
-                    long f_arrive_airport = (Long) flightRow.get( "F_ARRIVE_AP_ID" );
+                    long f_depart_airport = new Long( (Integer) flightRow.get( "f_depart_ap_id" ) );
+                    long f_arrive_airport = new Long( (Integer) flightRow.get( "f_arrive_ap_id" ) );
                     
                     Object row[] = new Object[13];
                     int r = 0;
                     
-                    row[r++] = flightRow.get("F_ID");    // [00] F_ID
-                    row[r++] = flightRow.get("F_SEATS_LEFT");    // [01] SEATS_LEFT
-                    row[r++] = flightRow.get("AL_NAME");  // [02] AL_NAME
+                    row[r++] = flightRow.get("f_id");    // [00] F_ID
+                    row[r++] = flightRow.get("f_seats_left");    // [01] SEATS_LEFT
+                    row[r++] = flightRow.get("al_name");  // [02] AL_NAME
                     
                     // DEPARTURE AIRPORT
 
@@ -160,11 +160,11 @@ public class FindFlights extends Procedure {
                     sb.append( " AND AP_CO_ID = CO_ID ");
                     List<Map<String,Object>> aiRows = RestQuery.restReadQuery( sb.toString(), id );
                     Map<String,Object> aiRow = aiRows.get( 0 );
-                    row[r++] = flightRow.get("F_DEPART_TIME");    // [03] DEPART_TIME
-                    row[r++] = aiRow.get("AP_CODE" );     // [04] DEPART_AP_CODE
-                    row[r++] = aiRow.get("AP_NAME");     // [05] DEPART_AP_NAME
-                    row[r++] = aiRow.get( "AP_CITY" );     // [06] DEPART_AP_CITY
-                    row[r++] = aiRow.get( "CO_NAME" );     // [07] DEPART_AP_COUNTRY
+                    row[r++] = flightRow.get("f_depart_time");    // [03] DEPART_TIME
+                    row[r++] = aiRow.get("ap_code" );     // [04] DEPART_AP_CODE
+                    row[r++] = aiRow.get("ap_name");     // [05] DEPART_AP_NAME
+                    row[r++] = aiRow.get( "ap_city" );     // [06] DEPART_AP_CITY
+                    row[r++] = aiRow.get( "co_name" );     // [07] DEPART_AP_COUNTRY
 
                     // ARRIVAL AIRPORT
                     sb = new StringBuilder();
@@ -180,11 +180,11 @@ public class FindFlights extends Procedure {
                     aiRows = RestQuery.restReadQuery( sb.toString(), id );
                     aiRow = aiRows.get( 0 );
 
-                    row[r++] = flightRow.get("F_ARRIVE_TIME" );    // [08] ARRIVE_TIME
-                    row[r++] = aiRow.get("AP_CODE");     // [09] ARRIVE_AP_CODE
-                    row[r++] = aiRow.get("AP_NAME");     // [10] ARRIVE_AP_NAME
-                    row[r++] = aiRow.get("AP_CITY");     // [11] ARRIVE_AP_CITY
-                    row[r++] = aiRow.get("CO_NAME");     // [12] ARRIVE_AP_COUNTRY
+                    row[r++] = flightRow.get("f_arrive_time" );    // [08] ARRIVE_TIME
+                    row[r++] = aiRow.get("ap_code");     // [09] ARRIVE_AP_CODE
+                    row[r++] = aiRow.get("ap_name");     // [10] ARRIVE_AP_NAME
+                    row[r++] = aiRow.get("ap_city");     // [11] ARRIVE_AP_CITY
+                    row[r++] = aiRow.get("co_name");     // [12] ARRIVE_AP_COUNTRY
                     
                     finalResults.add(row);
                     if (debug)

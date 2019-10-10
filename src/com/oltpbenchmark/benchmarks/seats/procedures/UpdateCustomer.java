@@ -113,7 +113,7 @@ public class UpdateCustomer extends Procedure {
             throw new UserAbortException(String.format("No Customer information record found for id '%d'", c_id));
         }
         Map<String, Object> apRow = resultSet.get( 0 );
-        long base_airport = (Long) apRow.get( "C_BASE_AP_ID" );
+        long base_airport = new Long( (Integer) apRow.get( "c_base_ap_id" ) );
         
         // Get their airport information
         sb = new StringBuilder();
@@ -136,7 +136,7 @@ public class UpdateCustomer extends Procedure {
             sb.append( c_id );
             resultSet = RestQuery.restReadQuery( sb.toString(), id );
             for( Map<String,Object> ffRow : resultSet ) {
-                long ff_al_id = (Long) ffRow.get( "FF_AL_ID" );
+                long ff_al_id = new Long( (Integer) ffRow.get( "ff_al_id" ) );
                 sb = new StringBuilder();
                 sb.append( "UPDATE " );
                 sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );

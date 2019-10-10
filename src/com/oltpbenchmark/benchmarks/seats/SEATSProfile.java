@@ -556,6 +556,10 @@ public class SEATSProfile {
                 f = this.airport_distributions.get(code);
                 if (f == null) {
                     Histogram<String> h = this.airport_histograms.get(code);
+		    if( h == null ) {
+			LOG.warn( "Could not get airport histogram for " + code );
+			LOG.warn( "Histograms: " + this.airport_histograms );
+		    }
                     assert (h != null);
                     f = new FlatHistogram<String>(this.rng, h);
                     this.airport_distributions.put(code, f);
