@@ -94,7 +94,7 @@ public class UpdateCustomer extends Procedure {
             List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
             if( !resultSet.isEmpty() ) {
                 Map<String,Object> row = resultSet.get( 0 );
-                c_id = (Long) row.get( "C_ID" );
+                c_id = (Long) row.get( "c_id" );
             } else {
                 throw new UserAbortException(String.format("No Customer information record found for string '%s'", c_id_str));
             }

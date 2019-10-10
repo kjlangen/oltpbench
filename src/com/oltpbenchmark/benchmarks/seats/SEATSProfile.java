@@ -410,9 +410,11 @@ public class SEATSProfile {
 
     private final void loadCodeXref( List<Map<String,Object>> resultSet, String codeCol, String idCol ) throws SQLException {
         Map<String, Long> m = this.code_id_xref.get( idCol );
+	LOG.warn( "Loading codeXref for: " + idCol + " -> " + codeCol + ", rows: " + resultSet.size() );
         for( Map<String, Object> row : resultSet ) {
             long id = new Long( (Integer) row.get( idCol.toLowerCase() ) );
-            String code = (String) row.get( codeCol );
+            String code = (String) row.get( codeCol.toLowerCase() );
+	    LOG.warn( "Adding " + code + " -> " + id );
             m.put(code, id);
         } // WHILE
         if (LOG.isDebugEnabled()) {
@@ -444,7 +446,8 @@ public class SEATSProfile {
 
     private Map<String, Long> getCodeXref(String col_name) {
         Map<String, Long> m = this.code_id_xref.get(col_name);
-        assert (m != null) : "Invalid code xref mapping column '" + col_name + "'";
+        assert (m != null) : "Invalid code xref mapping column '" + col_name + "'\n" + StringUtil.formatMaps(this.code_id_xref);
+;
         assert (m.isEmpty() == false) : "Empty code xref mapping for column '" + col_name + "'\n" + StringUtil.formatMaps(this.code_id_xref);
         return (m);
     }
@@ -557,8 +560,8 @@ public class SEATSProfile {
                 if (f == null) {
                     Histogram<String> h = this.airport_histograms.get(code);
 		    if( h == null ) {
-			LOG.warn( "Could not get airport histogram for " + code );
-			LOG.warn( "Histograms: " + this.airport_histograms );
+			LOG.warn( "Could not get airport histogram for " + code + " with original airport " + airport_id );
+			//LOG.warn( "Histograms: " + this.airport_histograms );
 		    }
                     assert (h != null);
                     f = new FlatHistogram<String>(this.rng, h);
@@ -686,6 +689,9 @@ public class SEATSProfile {
 
     public String getAirportCode(long airport_id) {
         Map<String, Long> m = this.getCodeXref("AP_ID");
+	if( airport_id == 1 ) {
+		LOG.warn( "Got values: " + m.values() );
+	}
         for (Entry<String, Long> e : m.entrySet()) {
             if (e.getValue() == airport_id) {
                 return (e.getKey());

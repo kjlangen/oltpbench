@@ -112,7 +112,7 @@ public class FindFlights extends Procedure {
             String startTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(start_date);
             String endTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(end_date);
             for( Map<String,Object> apRow : resultSet ) {
-                long aid = new Long( (Integer) apRow.get( "dp_ap_id1" ) );
+                long aid = new Long( (Integer) apRow.get( "d_ap_id1" ) );
                 double aid_distance = (Double) apRow.get( "d_distance" );
 
 
