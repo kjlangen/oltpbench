@@ -130,26 +130,20 @@ public class UpdateCustomer extends Procedure {
         
         if (update_ff != null) {
             sb = new StringBuilder();
-            sb.append( "SELECT FF_AL_ID FROM " );
-            sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-            sb.append( " WHERE FF_C_ID = " );
-            sb.append( c_id );
-            resultSet = RestQuery.restReadQuery( sb.toString(), id );
-            for( Map<String,Object> ffRow : resultSet ) {
-                long ff_al_id = new Long( (Integer) ffRow.get( "ff_al_id" ) );
-                sb = new StringBuilder();
-                sb.append( "UPDATE " );
-                sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-                sb.append( " SET FF_IATTR00 = ");
-                sb.append( attr0 );
-                sb.append( ", FF_IATTR01 = " );
-                sb.append( attr1 );
-                sb.append( " WHERE FF_C_ID = " );
-                sb.append( c_id );
-                sb.append( " AND FF_AL_ID = " );
-                sb.append( ff_al_id );
-                RestQuery.restOtherQuery( sb.toString(), id );
-            }
+	    sb.append( "UPDATE " );
+	    sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+	    sb.append( " SET FF_IATTR00 = ");
+	    sb.append( attr0 );
+	    sb.append( ", FF_IATTR01 = " );
+	    sb.append( attr1 );
+	    sb.append( " WHERE FF_C_ID = " );
+	    sb.append( c_id );
+	    sb.append( " AND FF_AL_ID IN ( SELECT FF_AL_ID FROM " );
+	    sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
+	    sb.append( " WHERE FF_C_ID = " );
+	    sb.append( c_id );
+	    sb.append( " )" );
+	    RestQuery.restOtherQuery( sb.toString(), id );
         }
 
         sb = new StringBuilder();

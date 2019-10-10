@@ -163,7 +163,8 @@ public abstract class SEATSConstants {
     /**
      * Probability that FindFlights will use the distance search
      */
-    public static final int PROB_FIND_FLIGHTS_NEARBY_AIRPORT = 25;
+    //public static final int PROB_FIND_FLIGHTS_NEARBY_AIRPORT = 25;
+    public static final int PROB_FIND_FLIGHTS_NEARBY_AIRPORT = 100;
     
     /**
      * Probability that FindFlights will use two random airports as its input
