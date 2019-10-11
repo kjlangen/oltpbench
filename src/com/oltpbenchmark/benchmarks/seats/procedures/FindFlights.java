@@ -106,7 +106,7 @@ public class FindFlights extends Procedure {
 	// HACK, shove our result in the result set as well.
 	sb.append( " UNION SELECT ap_id, ap_id, 0.0 FROM AIRPORT WHERE ap_id = " );
 	sb.append( arrive_aid );
-	sb.append( " ORDER BY D_DISTANCE ASC" );
+	sb.append( " ORDER BY d_distance ASC" );
 	List<Map<String, Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
 
 	String startTs = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(start_date);
@@ -172,7 +172,7 @@ public class FindFlights extends Procedure {
 			// ARRIVAL AIRPORT
 			sb = new StringBuilder();
 			sb.append( "SELECT ap_code, ap_name, ap_city, ap_longitude, ap_latitude, " );
-			sb.append( " co_id, co_name, co_code_2, co_code_3, 1 FROM " );
+			sb.append( " co_id, co_name FROM " );
 			sb.append( SEATSConstants.TABLENAME_AIRPORT );
 			sb.append( ", " );
 			sb.append( SEATSConstants.TABLENAME_COUNTRY );
