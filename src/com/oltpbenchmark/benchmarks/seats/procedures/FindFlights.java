@@ -97,14 +97,14 @@ public class FindFlights extends Procedure {
 	// First get the nearby airports for the departure and arrival cities
 	// Bug? This only gets the depart IP
 	StringBuilder sb = new StringBuilder();
-	sb.append( "SELECT D_AP_ID0, D_AP_ID1, D_DISTANCE FROM " );
+	sb.append( "SELECT d_ap_id0, d_ap_id1, d_distance FROM " );
 	sb.append( SEATSConstants.TABLENAME_AIRPORT_DISTANCE );
-	sb.append( " WHERE D_AP_ID0 = " );
+	sb.append( " WHERE d_ap_id0 = " );
 	sb.append( arrive_aid );
-	sb.append( "   AND D_DISTANCE <= " );
-	sb.append( distance );
+	sb.append( " AND d_distance <= 300" );
+	//sb.append( distance );
 	// HACK, shove our result in the result set as well.
-	sb.append( " UNION SELECT AP_ID, AP_ID, 0.0 FROM AIRPORT WHERE AP_ID = " );
+	sb.append( " UNION SELECT ap_id, ap_id, 0.0 FROM AIRPORT WHERE ap_id = " );
 	sb.append( arrive_aid );
 	sb.append( " ORDER BY D_DISTANCE ASC" );
 	List<Map<String, Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -117,20 +117,20 @@ public class FindFlights extends Procedure {
 		double aid_distance = (Double) apRow.get( "d_distance" );
 
 		sb = new StringBuilder();
-		sb.append( "SELECT F_ID, F_AL_ID, F_SEATS_LEFT, " );
-		sb.append( "F_DEPART_AP_ID, F_DEPART_TIME, F_ARRIVE_AP_ID, F_ARRIVE_TIME, " );
-		sb.append("AL_NAME, AL_IATTR00, AL_IATTR01 FROM " );
+		sb.append( "SELECT f_id, f_al_id, f_seats_left, " );
+		sb.append( "f_depart_ap_id, f_depart_time, f_arrive_ap_id, f_arrive_time, " );
+		sb.append("al_name, al_iattr00, al_iattr01 FROM " );
 		sb.append( SEATSConstants.TABLENAME_FLIGHT ); 
 		sb.append( ", " );
 		sb.append( SEATSConstants.TABLENAME_AIRLINE );
-		sb.append( " WHERE F_DEPART_AP_ID = " );
+		sb.append( " WHERE f_depart_ap_id = " );
 		sb.append( depart_aid );
-		sb.append( " AND F_DEPART_TIME >= '" );
+		sb.append( " AND f_depart_time >= '" );
 		sb.append( startTs ); //TODO ts format
-		sb.append( "' AND F_DEPART_TIME <= '" );
+		sb.append( "' AND f_depart_time <= '" );
 		sb.append( endTs ); // TODO fix ts
-		sb.append( "' AND F_AL_ID = AL_ID " );
-		sb.append( " AND F_ARRIVE_AP_ID = " );
+		sb.append( "' AND f_al_id = al_id" );
+		sb.append( " AND f_arrive_ap_id = " );
 		sb.append( aid );
 
 		List<Map<String,Object>> flights = RestQuery.restReadQuery( sb.toString(), id );
@@ -149,14 +149,18 @@ public class FindFlights extends Procedure {
 			// DEPARTURE AIRPORT
 
 			sb = new StringBuilder();
-			sb.append( "SELECT AP_CODE, AP_NAME, AP_CITY, AP_LONGITUDE, AP_LATITUDE, " );
-			sb.append( " CO_ID, CO_NAME, CO_CODE_2, CO_CODE_3 FROM " );
+			sb.append( "SELECT ap_code, ap_name, ap_city, ap_longitude, ap_latitude, " );
+			sb.append( " co_id, co_name, co_code_2, co_code_3 FROM " );
 			sb.append( SEATSConstants.TABLENAME_AIRPORT );
 			sb.append( ", " );
 			sb.append( SEATSConstants.TABLENAME_COUNTRY );
-			sb.append( " WHERE AP_ID = " );
+			sb.append( " WHERE ap_id = " );
 			sb.append( f_depart_airport );
-			sb.append( " AND AP_CO_ID = CO_ID ");
+			sb.append( " AND ap_co_id = co_id");
+			sb.append( " AND " );
+			sb.append( f_arrive_airport );
+			sb.append( " = " );
+			sb.append( f_arrive_airport );
 			List<Map<String,Object>> aiRows = RestQuery.restReadQuery( sb.toString(), id );
 			Map<String,Object> aiRow = aiRows.get( 0 );
 			row[r++] = flightRow.get("f_depart_time");    // [03] DEPART_TIME
@@ -167,14 +171,14 @@ public class FindFlights extends Procedure {
 
 			// ARRIVAL AIRPORT
 			sb = new StringBuilder();
-			sb.append( "SELECT AP_CODE, AP_NAME, AP_CITY, AP_LONGITUDE, AP_LATITUDE, " );
-			sb.append( " CO_ID, CO_NAME, CO_CODE_2, CO_CODE_3, 1 FROM " );
+			sb.append( "SELECT ap_code, ap_name, ap_city, ap_longitude, ap_latitude, " );
+			sb.append( " co_id, co_name, co_code_2, co_code_3, 1 FROM " );
 			sb.append( SEATSConstants.TABLENAME_AIRPORT );
 			sb.append( ", " );
 			sb.append( SEATSConstants.TABLENAME_COUNTRY );
-			sb.append( " WHERE AP_ID = " );
+			sb.append( " WHERE ap_id = " );
 			sb.append( f_arrive_airport );
-			sb.append( " AND AP_CO_ID = CO_ID");
+			sb.append( " AND ap_co_id = co_id");
 
 			aiRows = RestQuery.restReadQuery( sb.toString(), id );
 			aiRow = aiRows.get( 0 );

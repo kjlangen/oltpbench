@@ -93,10 +93,10 @@ public class DeleteReservation extends Procedure {
             // Use the customer's id as a string
             if (c_id_str != null && c_id_str.length() > 0) {
                 StringBuilder sb = new StringBuilder();
-                sb.append( "SELECT C_ID ");
+                sb.append( "SELECT c_id ");
                 sb.append( "FROM " );
                 sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-                sb.append( " WHERE C_ID_STR = ");
+                sb.append( " WHERE c_id_str = ");
                 sb.append( RestQuery.quoteAndSanitize( c_id_str ) );
                 queryText = sb.toString();
             }
@@ -105,14 +105,14 @@ public class DeleteReservation extends Procedure {
                 assert(ff_c_id_str.isEmpty() == false);
                 assert(ff_al_id != null);
                 StringBuilder sb = new StringBuilder();
-                sb.append( "SELECT C_ID, FF_AL_ID " );
+                sb.append( "SELECT c_id, ff_al_id " );
                 sb.append( "FROM " );
                 sb.append( SEATSConstants.TABLENAME_CUSTOMER );
                 sb.append( ", " );
                 sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-                sb.append( " WHERE FF_C_ID_STR = ");
+                sb.append( " WHERE ff_c_id_str = ");
                 sb.append( RestQuery.quoteAndSanitize( ff_c_id_str ) );
-                sb.append( " AND FF_C_ID = C_ID" );
+                sb.append( " AND ff_c_id = c_id" );
                 queryText = sb.toString();
 
                 has_al_id = true;
@@ -122,9 +122,9 @@ public class DeleteReservation extends Procedure {
                 throw new UserAbortException(String.format("No Customer record was found [c_id_str=%s, ff_c_id_str=%s, ff_al_id=%s]", c_id, ff_c_id_str, ff_al_id ) );
             }
             Map<String, Object> row = resultSet.get(0);
-            c_id = (Long) row.get( "C_ID" );
+            c_id = (Long) row.get( "c_id" );
             if( has_al_id ) {
-                ff_al_id = (Long) row.get( "FF_AL_ID" );
+                ff_al_id = (Long) row.get( "ff_al_id" );
             }
         }
 
@@ -132,20 +132,20 @@ public class DeleteReservation extends Procedure {
         // If there is no valid customer record, then throw an abort
         // This should happen 5% of the time
         StringBuilder sb = new StringBuilder();
-        sb.append( "SELECT C_SATTR00, C_SATTR02, C_SATTR04, " );
-        sb.append( "C_IATTR00, C_IATTR02, C_IATTR04, C_IATTR06, " );
-        sb.append( "F_SEATS_LEFT, R_ID, R_SEAT, R_PRICE, R_IATTR00 " );
+        sb.append( "SELECT c_sattr00, c_sattr02, c_sattr04, " );
+        sb.append( "c_iattr00, c_iattr02, c_iattr04, c_iattr06, " );
+        sb.append( "f_seats_left, r_id, r_seat, r_price, r_iattr00 " );
         sb.append( "FROM " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
         sb.append( ", " );
         sb.append( SEATSConstants.TABLENAME_FLIGHT );
         sb.append( ", " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE C_ID = " );
+        sb.append( " WHERE c_id = " );
         sb.append( c_id );
-        sb.append( " AND C_ID = R_C_ID AND F_ID = " );
+        sb.append( " AND c_id = r_c_id AND f_id = " );
         sb.append( f_id );
-        sb.append( " AND F_ID = R_F_ID ");
+        sb.append( " AND f_id = r_f_id ");
 
 
         List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -153,10 +153,10 @@ public class DeleteReservation extends Procedure {
             throw new UserAbortException(String.format("No Customer information record found for id '%d'", c_id));
         }
         Map<String,Object> row = resultSet.get( 0 );
-        long c_iattr00 = (Long) row.get( "C_IATTR00" ) + 1;
-        long seats_left = (Long) row.get( "F_SEATS_LEFT" );
-        long r_id = (Long) row.get( "R_ID" ); 
-        double r_price = (Double) row.get( "R_PRICE" );
+        long c_iattr00 = (Long) row.get( "c_iattr00" ) + 1;
+        long seats_left = (Long) row.get( "f_seats_left" );
+        long r_id = (Long) row.get( "r_id" ); 
+        double r_price = (Double) row.get( "r_price" );
 
         int updated = 0;
         
@@ -164,11 +164,11 @@ public class DeleteReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "DELETE FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE R_ID = " );
+        sb.append( " WHERE r_id = " );
         sb.append( r_id );
-        sb.append( " AND R_C_ID = " );
+        sb.append( " AND r_c_id = " );
         sb.append( c_id );
-        sb.append( " AND R_F_ID = ");
+        sb.append( " AND r_f_id = ");
         sb.append( f_id );
 
         RestQuery.restOtherQuery( sb.toString(), id );
@@ -177,8 +177,8 @@ public class DeleteReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_FLIGHT );
-        sb.append( " SET F_SEATS_LEFT = F_SEATS_LEFT + 1" );
-        sb.append( " WHERE F_ID = " );
+        sb.append( " SET f_seats_left = f_seats_left + 1" );
+        sb.append( " WHERE f_id = " );
         sb.append( f_id );
 
         RestQuery.restOtherQuery( sb.toString(), id );
@@ -187,14 +187,14 @@ public class DeleteReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-        sb.append( " SET C_BALANCE = C_BALANCE + " );
+        sb.append( " SET c_balance = c_balance + " );
         double val = -1 * r_price;
         sb.append( val );
-        sb.append( ", C_IATTR00 = " );
+        sb.append( ", c_iattr00 = " );
         sb.append( c_iattr00 );
-        sb.append( ", C_IATTR10 = C_IATTR10 - 1," );
-        sb.append( " C_IATTR11 = C_IATTR10 - 1" );
-        sb.append( " WHERE C_ID = ");
+        sb.append( ", c_iattr10 = c_iattr10 - 1," );
+        sb.append( " c_iattr11 = c_iattr10 - 1" );
+        sb.append( " WHERE c_id = ");
         sb.append( c_id );
         RestQuery.restOtherQuery( sb.toString(), id );
 
@@ -204,10 +204,10 @@ public class DeleteReservation extends Procedure {
             sb = new StringBuilder();
             sb.append( "UPDATE " );
             sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-            sb.append( " SET FF_IATTR10 = FF_IATTR10 - 1 " );
-            sb.append( " WHERE FF_C_ID = " );
+            sb.append( " SET ff_iattr10 = ff_iattr10 - 1 " );
+            sb.append( " WHERE ff_c_id = " );
             sb.append( c_id );
-            sb.append( " AND FF_AL_ID = " );
+            sb.append( " AND ff_al_id = " );
             sb.append( ff_al_id );
             RestQuery.restOtherQuery( sb.toString(), id );
 
