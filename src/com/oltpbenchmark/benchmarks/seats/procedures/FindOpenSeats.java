@@ -125,7 +125,7 @@ public class FindOpenSeats extends Procedure {
 
         List<Map<String,Object>> seats = RestQuery.restReadQuery( sb.toString(), id );
         for( Map<String, Object> seatRow : seats ) {
-            long r_id = new Long( (Integer) seatRow.get( "r_id" ) );
+            long r_id = (Long) seatRow.get( "r_id" );
             int seatnum = (Integer) seatRow.get( "r_seat" );
             if (debug) LOG.debug(String.format("Reserved Seat: fid %d / rid %d / seat %d", f_id, r_id, seatnum));
             assert(seatmap[seatnum] == -1) : "Duplicate seat reservation: R_ID=" + r_id;
