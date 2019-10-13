@@ -92,11 +92,11 @@ public class UpdateReservation extends Procedure {
         
         // Check if Seat is Available
         StringBuilder sb = new StringBuilder();
-        sb.append( "SELECT R_ID FROM " );
+        sb.append( "SELECT r_id FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE R_F_ID = " );
+        sb.append( " WHERE r_f_id = " );
         sb.append( f_id );
-        sb.append( " AND R_SEAT = ");
+        sb.append( " AND r_seat = ");
         sb.append( seatnum );
 
         List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
@@ -106,11 +106,11 @@ public class UpdateReservation extends Procedure {
         }
 
         sb = new StringBuilder();
-        sb.append( "SELECT R_ID FROM " );
+        sb.append( "SELECT r_id FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE R_F_ID = " );
+        sb.append( " WHERE r_f_id = " );
         sb.append( f_id );
-        sb.append( " AND R_C_ID = " );
+        sb.append( " AND r_c_id = " );
         sb.append( c_id );
         resultSet = RestQuery.restReadQuery( sb.toString(), id );
 
@@ -124,17 +124,17 @@ public class UpdateReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " SET R_SEAT = " );
+        sb.append( " SET r_seat = " );
         sb.append( seatnum );
-        sb.append( ", R_IATTR0" );
+        sb.append( ", r_iattr0" );
         sb.append( attr_idx );
         sb.append( " = " );
         sb.append( attr_val );
-        sb.append( " WHERE R_ID = " );
+        sb.append( " WHERE r_id = " );
         sb.append( r_id );
-        sb.append( " AND R_C_ID = " );
+        sb.append( " AND r_c_id = " );
         sb.append( c_id );
-        sb.append( " AND R_F_ID = " );
+        sb.append( " AND r_f_id = " );
         sb.append( f_id );
         int updated = RestQuery.restOtherQuery( sb.toString(), id );
 

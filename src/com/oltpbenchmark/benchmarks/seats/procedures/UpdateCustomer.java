@@ -158,9 +158,10 @@ public class UpdateCustomer extends Procedure {
         int updated = RestQuery.restOtherQuery( sb.toString(), id );
         if (updated != 1) {
             String msg = String.format("Failed to update customer #%d - Updated %d records", c_id, updated);
-            if (debug) LOG.warn(msg);
+            LOG.warn(msg);
             throw new UserAbortException(ErrorType.VALIDITY_ERROR + " " + msg);
         }
+	LOG.warn( "Done!" );
         
         return;
     }

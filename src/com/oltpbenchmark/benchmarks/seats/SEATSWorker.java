@@ -737,11 +737,10 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
         while(!successful){
         	try{
         	    proc.run(conn, c_id, c_id_str, update_ff, attr0, attr1, this.getId() );
-        		conn.commit();
-        		successful = true;
+        	    successful = true;
         	}catch(SQLException esql){
         		int error_code = esql.getErrorCode();
-//        		LOG.error("Update Customer Error code is "+error_code);
+        		LOG.error("Update Customer Error code is "+error_code);
         		if (error_code == 8177){
         			conn.rollback();
         		}
@@ -775,8 +774,7 @@ public class SEATSWorker extends Worker<SEATSBenchmark> {
             // Nothing
         }
         if (r == null) {
-            if (LOG.isDebugEnabled())
-                LOG.warn(String.format("Failed to find Reservation to update [cache=%d]", cache.size()));
+            LOG.warn(String.format("Failed to find Reservation to update [cache=%d]", cache.size()));
             return (false);
         }
         if (LOG.isTraceEnabled())
