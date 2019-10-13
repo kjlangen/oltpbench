@@ -101,7 +101,7 @@ public class FindFlights extends Procedure {
 	sb.append( SEATSConstants.TABLENAME_AIRPORT_DISTANCE );
 	sb.append( " WHERE d_ap_id0 = " );
 	sb.append( arrive_aid );
-	sb.append( " AND d_distance <= 300" );
+	sb.append( " AND d_distance <= 200" );
 	//sb.append( distance );
 	// HACK, shove our result in the result set as well.
 	sb.append( " UNION SELECT ap_id, ap_id, 0.0 FROM AIRPORT WHERE ap_id = " );

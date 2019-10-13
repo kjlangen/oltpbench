@@ -122,13 +122,13 @@ public class NewReservation extends Procedure {
         
         // Flight Information
         StringBuilder sb = new StringBuilder();
-        sb.append( "SELECT F_ID, F_AL_ID, F_SEATS_LEFT FROM " );
+        sb.append( "SELECT f_id, f_al_id, f_seats_left FROM " );
         sb.append( SEATSConstants.TABLENAME_FLIGHT );
         sb.append( ", " );
         sb.append( SEATSConstants.TABLENAME_AIRLINE );
-        sb.append( " WHERE F_ID = " );
+        sb.append( " WHERE f_id = " );
         sb.append( f_id );
-        sb.append( " AND F_AL_ID = AL_ID" );
+        sb.append( " AND f_al_id = al_id" );
 
         List<Map<String,Object>> results = RestQuery.restReadQuery( sb.toString(), id );
         if( results.isEmpty() ) {
@@ -145,38 +145,38 @@ public class NewReservation extends Procedure {
         // Check if Seat is Available
         
         sb = new StringBuilder();
-        sb.append( "SELECT R_ID FROM " );
+        sb.append( "SELECT r_id FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append(" WHERE R_F_ID = " );
+        sb.append(" WHERE r_f_id = " );
         sb.append( f_id );
-        sb.append( " AND R_SEAT = ");
+        sb.append( " AND r_seat = ");
         sb.append( seatnum );
 
         results = RestQuery.restReadQuery( sb.toString(), id );
-        if( results.isEmpty() ) {
+        if( !results.isEmpty() ) {
             throw new UserAbortException(ErrorType.SEAT_ALREADY_RESERVED +
                                          String.format(" Seat %d is already reserved on flight #%d", seatnum, f_id));
         }
 
         sb = new StringBuilder();
-        sb.append( "SELECT R_ID, R_C_ID FROM "); 
+        sb.append( "SELECT r_id, r_c_id FROM "); 
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE R_F_ID = " );
+        sb.append( " WHERE r_f_id = " );
         sb.append( f_id );
-        sb.append( " AND R_C_ID = " );
+        sb.append( " AND r_c_id = " );
         sb.append( c_id );
         results = RestQuery.restReadQuery( sb.toString(), id );
 
-        if( results.isEmpty() ) {
+        if( !results.isEmpty() ) {
             throw new UserAbortException(ErrorType.CUSTOMER_ALREADY_HAS_SEAT +
                                          String.format(" Customer %d already owns on a reservations on flight #%d", c_id, f_id));
         }
 
         // Get Customer Information
         sb = new StringBuilder();
-        sb.append( "SELECT C_BASE_AP_ID, C_BALANCE, C_SATTR00 FROM " );
+        sb.append( "SELECT c_base_ap_id, c_balance, c_sattr00 fROM " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-        sb.append( " WHERE C_ID = " );
+        sb.append( " WHERE c_id = " );
         sb.append( c_id );
         results = RestQuery.restReadQuery( sb.toString(), id );
 
@@ -187,9 +187,9 @@ public class NewReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "INSERT INTO " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " (R_ID, R_C_ID, R_F_ID, R_SEAT, R_PRICE, R_IATTR00, R_IATTR01, " );
-        sb.append( "R_IATTR02, R_IATTR03, R_IATTR04, R_IATTR05, R_IATTR06, R_IATTR07, " );
-        sb.append( "R_IATTR08) VALUES ( " );
+        sb.append( " (r_id, r_c_id, r_f_id, r_seat, r_price, r_iattr00, r_iattr01, " );
+        sb.append( "r_iattr02, r_iattr03, r_iattr04, r_iattr05, r_iattr06, r_iattr07, " );
+        sb.append( "r_iattr08) VALUES ( " );
         sb.append( r_id );
         sb.append( ", " );
         sb.append( c_id );
@@ -230,8 +230,8 @@ public class NewReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_FLIGHT );
-        sb.append( " SET F_SEATS_LEFT = F_SEATS_LEFT - 1" );
-        sb.append( " WHERE F_ID = ");
+        sb.append( " SET f_seats_left = f_seats_left - 1" );
+        sb.append( " WHERE f_id = ");
         sb.append( f_id );
 
         updated = RestQuery.restOtherQuery( sb.toString(), id );
@@ -244,17 +244,17 @@ public class NewReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-        sb.append( " SET C_IATTR10 = C_IATTR10 + 1, " );
-        sb.append( " C_IATTR11 = C_IATTR11 + 1, "  );
-        sb.append( " C_IATTR12 = ");
+        sb.append( " SET c_iattr10 = c_iattr10 + 1, " );
+        sb.append( " c_iattr11 = c_iattr11 + 1, "  );
+        sb.append( " c_iattr12 = ");
         sb.append( attrs[0] ); 
-        sb.append( ", C_IATTR13 = ");
+        sb.append( ", c_iattr13 = ");
         sb.append( attrs[1] );
-        sb.append( ", C_IATTR14 = " );
+        sb.append( ", c_iattr14 = " );
         sb.append( attrs[2] );
-        sb.append( ", C_IATTR15 = ");
+        sb.append( ", c_iattr15 = ");
         sb.append( attrs[3] );
-        sb.append( "WHERE C_ID = ");
+        sb.append( "WHERE c_id = ");
         sb.append( c_id );
 
         updated = RestQuery.restOtherQuery( sb.toString(), id );
@@ -268,18 +268,18 @@ public class NewReservation extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-        sb.append( " SET FF_IATTR10 = FF_IATTR10 + 1, " );
-        sb.append( " FF_IATTR11 = " );
+        sb.append( " SET ff_iattr10 = ff_iattr10 + 1, " );
+        sb.append( " ff_iattr11 = " );
         sb.append( attrs[4] );
-        sb.append( ", FF_IATTR12 = " );
+        sb.append( ", ff_iattr12 = " );
         sb.append( attrs[5] );
-        sb.append( ", FF_IATTR13 = " );
+        sb.append( ", ff_iattr13 = " );
         sb.append( attrs[6] );
-        sb.append( ", FF_IATTR14 = " );
+        sb.append( ", ff_iattr14 = " );
         sb.append( attrs[7] );
-        sb.append( " WHERE FF_C_ID = " );
+        sb.append( " WHERE ff_c_id = " );
         sb.append( c_id );
-        sb.append( " AND FF_AL_ID = " );
+        sb.append( " AND ff_al_id = " );
         sb.append( airline_id );
 
         updated = RestQuery.restOtherQuery( sb.toString(), id );

@@ -95,11 +95,11 @@ public class FindOpenSeats extends Procedure {
         // First calculate the seat price using the flight's base price
         // and the number of seats that remaining
         StringBuilder sb = new StringBuilder();
-        sb.append( "SELECT F_ID, F_STATUS, F_BASE_PRICE, F_SEATS_TOTAL, F_SEATS_LEFT, " );
-        sb.append( "(F_BASE_PRICE + (F_BASE_PRICE * (1 - (F_SEATS_LEFT / F_SEATS_TOTAL)))) AS F_PRICE " );
+        sb.append( "SELECT f_id, f_status, f_base_price, f_seats_total, f_seats_left, " );
+        sb.append( "(f_base_price + (f_base_price * (1 - (f_seats_left / f_seats_total)))) AS f_price " );
         sb.append( "FROM " );
         sb.append( SEATSConstants.TABLENAME_FLIGHT );
-        sb.append( " WHERE F_ID = " );
+        sb.append( " WHERE f_id = " );
         sb.append( f_id );
 
         List<Map<String,Object>> flightRows = RestQuery.restReadQuery( sb.toString(), id );
@@ -117,10 +117,10 @@ public class FindOpenSeats extends Procedure {
         // Then build the seat map of the remaining seats
 
         sb = new StringBuilder();
-        sb.append( "SELECT R_ID, R_F_ID, R_SEAT " );
+        sb.append( "SELECT r_id, r_seat " );
         sb.append( "FROM " );
         sb.append( SEATSConstants.TABLENAME_RESERVATION );
-        sb.append( " WHERE R_F_ID = " );
+        sb.append( " WHERE r_f_id = " );
         sb.append( f_id );
 
         List<Map<String,Object>> seats = RestQuery.restReadQuery( sb.toString(), id );

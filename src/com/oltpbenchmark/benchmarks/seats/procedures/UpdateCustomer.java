@@ -85,9 +85,9 @@ public class UpdateCustomer extends Procedure {
             assert(c_id_str != null);
             assert(c_id_str.isEmpty() == false);
 
-            sb.append( "SELECT C_ID FROM " );
+            sb.append( "SELECT c_id FROM " );
             sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-            sb.append( " WHERE C_ID_STR = '" );
+            sb.append( " WHERE c_id_str = '" );
             sb.append( c_id_str );
             sb.append( "'" );
 
@@ -104,9 +104,9 @@ public class UpdateCustomer extends Procedure {
         
         // Normally the retrieve all fields here but they are unused...
         StringBuilder sb = new StringBuilder();
-        sb.append( "SELECT C_ID, C_ID_STR, C_BASE_AP_ID, C_BALANCE FROM " );
+        sb.append( "SELECT c_id, c_id_str, c_base_ap_id, c_balance FROM " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-        sb.append( " WHERE C_ID = " );
+        sb.append( " WHERE c_id = " );
         sb.append( c_id );
         List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), id );
         if( resultSet.isEmpty() ) {
@@ -117,13 +117,13 @@ public class UpdateCustomer extends Procedure {
         
         // Get their airport information
         sb = new StringBuilder();
-        sb.append( "SELECT AP_ID FROM " );
+        sb.append( "SELECT ap_id FROM " );
         sb.append( SEATSConstants.TABLENAME_AIRPORT );
         sb.append( "," );
         sb.append( SEATSConstants.TABLENAME_COUNTRY );
-        sb.append( " WHERE AP_ID = " );
+        sb.append( " WHERE ap_id = " );
         sb.append( base_airport );
-        sb.append( " AND AP_CO_ID = CO_ID" );
+        sb.append( " AND ap_co_id = co_id" );
         
         resultSet = RestQuery.restReadQuery( sb.toString(), id );
         assert( !resultSet.isEmpty() );
@@ -132,15 +132,15 @@ public class UpdateCustomer extends Procedure {
             sb = new StringBuilder();
 	    sb.append( "UPDATE " );
 	    sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-	    sb.append( " SET FF_IATTR00 = ");
+	    sb.append( " SET ff_iattr00 = ");
 	    sb.append( attr0 );
-	    sb.append( ", FF_IATTR01 = " );
+	    sb.append( ", ff_iattr01 = " );
 	    sb.append( attr1 );
-	    sb.append( " WHERE FF_C_ID = " );
+	    sb.append( " WHERE ff_c_id = " );
 	    sb.append( c_id );
-	    sb.append( " AND FF_AL_ID IN ( SELECT FF_AL_ID FROM " );
+	    sb.append( " AND ff_al_id IN ( SELECT ff_al_id fROM " );
 	    sb.append( SEATSConstants.TABLENAME_FREQUENT_FLYER );
-	    sb.append( " WHERE FF_C_ID = " );
+	    sb.append( " WHERE ff_c_id = " );
 	    sb.append( c_id );
 	    sb.append( " )" );
 	    RestQuery.restOtherQuery( sb.toString(), id );
@@ -149,11 +149,11 @@ public class UpdateCustomer extends Procedure {
         sb = new StringBuilder();
         sb.append( "UPDATE " );
         sb.append( SEATSConstants.TABLENAME_CUSTOMER );
-        sb.append( " SET C_IATTR00 = " );
+        sb.append( " SET c_iattr00 = " );
         sb.append( attr0 );
-        sb.append( " , C_IATTR01 = " );
+        sb.append( " , c_iattr01 = " );
         sb.append( attr1 );
-        sb.append( " WHERE C_ID = " );
+        sb.append( " WHERE c_id = " );
         sb.append( c_id );
         int updated = RestQuery.restOtherQuery( sb.toString(), id );
         if (updated != 1) {
