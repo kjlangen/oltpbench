@@ -124,7 +124,7 @@ public class DeleteReservation extends Procedure {
             Map<String, Object> row = resultSet.get(0);
             c_id = (Long) row.get( "c_id" );
             if( has_al_id ) {
-                ff_al_id = (Long) row.get( "ff_al_id" );
+                ff_al_id = new Long( (Integer) row.get( "ff_al_id" ) );
             }
         }
 
@@ -153,8 +153,8 @@ public class DeleteReservation extends Procedure {
             throw new UserAbortException(String.format("No Customer information record found for id '%d'", c_id));
         }
         Map<String,Object> row = resultSet.get( 0 );
-        long c_iattr00 = (Long) row.get( "c_iattr00" ) + 1;
-        long seats_left = (Long) row.get( "f_seats_left" );
+        long c_iattr00 = new Long( (Integer) row.get( "c_iattr00" ) ) + 1;
+        long seats_left = new Long( (Integer) row.get( "f_seats_left" ) );
         long r_id = (Long) row.get( "r_id" ); 
         double r_price = (Double) row.get( "r_price" );
 

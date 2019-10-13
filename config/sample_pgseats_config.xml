@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://34.215.210.64:5432/seats</DBUrl>
-    <DBRestHost>35.153.33.42</DBRestHost>
+    <DBUrl>jdbc:postgresql://35.164.208.219:5432/seats</DBUrl>
+    <DBRestHost>100.26.142.165</DBRestHost>
     <username>kronos</username>
     <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
@@ -22,7 +22,7 @@
           <time>300</time>
           <rate>10000</rate>
 	  <!--          <weights>5, 25, 35, 20, 5, 10</weights> -->
-	  <weights>0, 50, 50, 0, 0, 0</weights>
+	  <weights>25, 0, 0, 75, 0, 0</weights>
         </work>
     </works>
 
