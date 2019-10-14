@@ -44,8 +44,7 @@ public class RestQuery
 	public static void setHostname(String host)
 	{
 		hostname = host;
-	}
-
+	} 
 	public static String quoteAndSanitize(String dirty)
 	{
 		return "'" + dirty.replace("'", "\\'") + "'";

@@ -212,7 +212,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
     public final void run() {
         Thread t = Thread.currentThread();
         SubmittedProcedure pieceOfWork;
-        t.setName(this.toString());
+        //t.setName(this.toString());
 
         // In case of reuse reset the measurements
         latencies = new LatencyRecord(wrkldState.getTestStartNs());
