@@ -83,66 +83,66 @@ public class LoadConfig extends Procedure {
     
     public ResultSet[] run(Connection conn) throws SQLException {
         PreparedStatement stmt = null;
-        
+
         List<ResultSet> results = new ArrayList<ResultSet>();
         results.add(this.getPreparedStatement(conn, getConfigProfile).executeQuery());
         results.add(this.getPreparedStatement(conn, getCategoryCounts).executeQuery());
         results.add(this.getPreparedStatement(conn, getAttributes).executeQuery());
         results.add(this.getPreparedStatement(conn, getPendingComments).executeQuery());
-        
-	// This gives us three result sets
-	// OPEN (aka future results)
-	// WAITING_FOR_PURCHASE
-	// CLOSED
-	//
-	StringBuffer sb = new StringBuffer();
-	sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
-	sb.append( "FROM " );
-	sb.append( AuctionMarkConstants.TABLENAME_ITEM );
-	sb.append( ", " );
-	sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
-	sb.append( " WHERE i_status = ?" );
+
+        // This gives us three result sets
+        // OPEN (aka future results)
+        // WAITING_FOR_PURCHASE
+        // CLOSED
+        //
+        StringBuffer sb = new StringBuffer();
+        sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
+        sb.append( "FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM );
+        sb.append( ", " );
+        sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
+        sb.append( " WHERE i_status = ?" );
         sb.append( " AND i_end_date > cfp_loader_start AND " );
-	sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
-	sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
-	sb.append( " WHERE ip_id = i_id )) " );
-	sb.append( "ORDER BY i_end_date ASC");
+        sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
+        sb.append( " WHERE ip_id = i_id )) " );
+        sb.append( "ORDER BY i_end_date ASC");
         sb.append( " LIMIT " );
-	sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
+        sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
 
-	LOG.info( sb.toString() );
+        LOG.info( sb.toString() );
         stmt = conn.prepareStatement(sb.toString());
-	stmt.setLong( 1, ItemStatus.OPEN.ordinal() );
+        stmt.setLong( 1, ItemStatus.OPEN.ordinal() );
         results.add(stmt.executeQuery());
 
-	// Here's some BS
-	// We know that stuff in here will either end up in the WAITING_FOR_PURCHASE OR CLOSED
-	// queues. But we should only end up in the WAITING_FOR_PURCHASE QUEUE IF we don't already have
-	// a purchase record.
-	
-	sb = new StringBuffer();
-	sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
-	sb.append( "FROM " );
-	sb.append( AuctionMarkConstants.TABLENAME_ITEM );
-	sb.append( ", " );
-	sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
-	sb.append( " WHERE i_status = ?" );
+        // Here's some BS
+        // We know that stuff in here will either end up in the WAITING_FOR_PURCHASE OR CLOSED
+        // queues. But we should only end up in the WAITING_FOR_PURCHASE QUEUE IF we don't already have
+        // a purchase record.
+
+        sb = new StringBuffer();
+        sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
+        sb.append( "FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM );
+        sb.append( ", " );
+        sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
+        sb.append( " WHERE i_status = ?" );
         sb.append( " AND i_end_date <= cfp_loader_start AND " );
-	sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
-	sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
-	sb.append( " WHERE ip_id = i_id )) " );
-	sb.append( "ORDER BY i_end_date ASC");
+        sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
+        sb.append( " WHERE ip_id = i_id )) " );
+        sb.append( "ORDER BY i_end_date ASC");
         sb.append( " LIMIT " );
-	sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
+        sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
 
-	LOG.info( sb.toString() );
+        LOG.info( sb.toString() );
 
-	stmt = conn.prepareStatement(sb.toString());
-	stmt.setLong( 1, ItemStatus.WAITING_FOR_PURCHASE.ordinal() );
+        stmt = conn.prepareStatement(sb.toString());
+        stmt.setLong( 1, ItemStatus.WAITING_FOR_PURCHASE.ordinal() );
         results.add(stmt.executeQuery());
 
-	stmt = conn.prepareStatement(sb.toString() );
-	stmt.setLong( 1, ItemStatus.CLOSED.ordinal() );
+        stmt = conn.prepareStatement(sb.toString() );
+        stmt.setLong( 1, ItemStatus.CLOSED.ordinal() );
         results.add(stmt.executeQuery());
 
         return (results.toArray(new ResultSet[0]));
