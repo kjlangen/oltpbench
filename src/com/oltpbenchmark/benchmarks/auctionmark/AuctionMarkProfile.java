@@ -803,7 +803,7 @@ public class AuctionMarkProfile {
         }
         
         if (new_status != itemInfo.status) {
-		LOG.info( "Going to add " + itemInfo.getItemId() + " with status " + itemInfo.status + " to a list using newStatus " + new_status );
+		//LOG.info( "Going to add " + itemInfo.getItemId() + " with status " + itemInfo.status + " to a list using newStatus " + new_status );
             if (itemInfo.status != null)
                 assert(new_status.ordinal() > itemInfo.status.ordinal()) :
                     "Trying to improperly move " + itemInfo + " from " + itemInfo.status + " to " + new_status;

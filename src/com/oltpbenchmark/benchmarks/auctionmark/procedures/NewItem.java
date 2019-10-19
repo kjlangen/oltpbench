@@ -58,6 +58,7 @@ public class NewItem extends Procedure {
         	"i_num_bids," + 
         	"i_num_images," + 
         	"i_num_global_attrs," + 
+		"i_num_comments," +
         	"i_start_date," + 
         	"i_end_date," +
         	"i_status, " +
@@ -76,6 +77,7 @@ public class NewItem extends Procedure {
             "?," +  // i_num_bids
             "?," +  // i_num_images
             "?," +  // i_num_global_attrs
+	    "0" + // i_num_comments
             "?," +  // i_start_date
             "?," +  // i_end_date
             "?," +  // i_status
@@ -156,6 +158,8 @@ public class NewItem extends Procedure {
                         long gag_ids[], long gav_ids[], String images[]) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
+
+	LOG.info( "Going to add new item: " + item_id );
         
         // Calculate endDate
         Timestamp end_date = new Timestamp(currentTime.getTime() + (duration * AuctionMarkConstants.MILLISECONDS_IN_A_DAY));

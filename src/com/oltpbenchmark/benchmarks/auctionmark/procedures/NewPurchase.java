@@ -23,6 +23,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.apache.log4j.Logger;
+
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
@@ -35,6 +37,8 @@ import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
  * @author visawee
  */
 public class NewPurchase extends Procedure {
+
+    private static final Logger LOG = Logger.getLogger(NewPurchase.class);
     
     // -----------------------------------------------------------------
     // STATEMENTS
@@ -141,6 +145,8 @@ public class NewPurchase extends Procedure {
     
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
                         long item_id, long seller_id, long ip_id, double buyer_credit) throws SQLException {
+
+	LOG.info( "GOING TO PURCHASE: " + item_id + " with IP_ID: " + ip_id );
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         
         PreparedStatement stmt = null;
