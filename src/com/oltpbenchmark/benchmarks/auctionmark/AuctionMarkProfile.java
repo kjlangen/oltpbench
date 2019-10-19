@@ -356,11 +356,9 @@ public class AuctionMarkProfile {
                 // Otherwise we have to go fetch everything again
                 // So first we want to reset the database
                 Connection conn = worker.getConnection();
-                if (AuctionMarkConstants.RESET_DATABASE_ENABLE) {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Reseting database from last execution run");
-                    worker.getProcedure(ResetDatabase.class).run(conn);
-                }
+                LOG.warn("Reseting database from last execution run");
+                worker.getProcedure(ResetDatabase.class).run(conn);
+                LOG.warn("Done Reseting database from last execution run");
                 
                 // Then invoke LoadConfig to pull down the profile information we need
                 if (LOG.isDebugEnabled())
@@ -444,6 +442,7 @@ public class AuctionMarkProfile {
     
     private static final void loadItems(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
         int ctr = 0;
+	LOG.info( "Loading items and adding them to proper queue." );
         while (vt.next()) {
             int col = 1;
             ItemId i_id = new ItemId(vt.getLong(col++));
@@ -453,6 +452,7 @@ public class AuctionMarkProfile {
             
             // IMPORTANT: Do not set the status here so that we make sure that
             // it is added to the right queue
+	    // XXX Sot this will end up as OPEN later...
             ItemInfo itemInfo = new ItemInfo(i_id, i_current_price, i_end_date, i_num_bids);
             profile.addItemToProperQueue(itemInfo, false);
             ctr++;
@@ -790,6 +790,7 @@ public class AuctionMarkProfile {
         }
         
         if (new_status != itemInfo.status) {
+		LOG.info( "Going to add " + itemInfo.getItemId() + " with status " + itemInfo.status + " to a list using newStatus " + new_status );
             if (itemInfo.status != null)
                 assert(new_status.ordinal() > itemInfo.status.ordinal()) :
                     "Trying to improperly move " + itemInfo + " from " + itemInfo.status + " to " + new_status;

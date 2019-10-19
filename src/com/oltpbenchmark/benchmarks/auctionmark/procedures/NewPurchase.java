@@ -47,7 +47,7 @@ public class NewPurchase extends Procedure {
     
     public final SQLStmt getMaxBid = new SQLStmt(
         "SELECT * FROM " + AuctionMarkConstants.TABLENAME_ITEM_BID +
-        " WHERE imb_i_id = ? AND imb_u_id = ? " +
+        " WHERE ib_i_id = ? AND ib_u_id = ? " +
         " ORDER BY ib_bid DESC LIMIT 1" 
     );
     
@@ -200,7 +200,7 @@ public class NewPurchase extends Procedure {
         }
 
         // Set item_purchase_id
-        updated = this.getPreparedStatement(conn, insertPurchase, ip_id, ib_id, item_id, seller_id, currentTime).executeUpdate();
+	updated = this.getPreparedStatement(conn, insertPurchase, ip_id, ib_id, item_id, seller_id, currentTime).executeUpdate();
         assert(updated == 1);
         
         // Update item status to close

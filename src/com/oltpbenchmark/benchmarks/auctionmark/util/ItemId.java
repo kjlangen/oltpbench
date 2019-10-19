@@ -28,7 +28,7 @@ import com.oltpbenchmark.util.CompositeId;
 public class ItemId extends CompositeId {
 
     private static final int COMPOSITE_BITS[] = {
-        40, // SELLER_ID
+        44, // SELLER_ID (assert same size as UserId)
         16, // ITEM_CTR
     };
     private static final long COMPOSITE_POWS[] = compositeBitsPreCompute(COMPOSITE_BITS);
@@ -42,6 +42,7 @@ public class ItemId extends CompositeId {
     
     public ItemId(UserId seller_id, int item_ctr) {
         this.seller_id = seller_id;
+	assert( item_ctr < 65536 );
         this.item_ctr = item_ctr;
     }
     
@@ -86,7 +87,7 @@ public class ItemId extends CompositeId {
     
     @Override
     public String toString() {
-        return ("ItemId<" + this.item_ctr + "-" + this.seller_id + "/" + this.seller_id.encode() + ">");
+        return ("ItemId<" + this.item_ctr + "-" + this.seller_id + "/" + this.seller_id.encode() + "> =" + this.encode() );
     }
     
     public static String toString(long itemId) {
