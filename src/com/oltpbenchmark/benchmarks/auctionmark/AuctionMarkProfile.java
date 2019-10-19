@@ -356,11 +356,9 @@ public class AuctionMarkProfile {
                 // Otherwise we have to go fetch everything again
                 // So first we want to reset the database
                 Connection conn = worker.getConnection();
-                if (AuctionMarkConstants.RESET_DATABASE_ENABLE) {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Reseting database from last execution run");
-                    worker.getProcedure(ResetDatabase.class).run(conn);
-                }
+                LOG.warn("Reseting database from last execution run");
+                worker.getProcedure(ResetDatabase.class).run(conn);
+                LOG.warn("Done Reseting database from last execution run");
                 
                 // Then invoke LoadConfig to pull down the profile information we need
                 if (LOG.isDebugEnabled())
@@ -444,6 +442,7 @@ public class AuctionMarkProfile {
     
     private static final void loadItems(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
         int ctr = 0;
+	LOG.info( "Loading items and adding them to proper queue." );
         while (vt.next()) {
             int col = 1;
             ItemId i_id = new ItemId(vt.getLong(col++));
@@ -453,6 +452,7 @@ public class AuctionMarkProfile {
             
             // IMPORTANT: Do not set the status here so that we make sure that
             // it is added to the right queue
+	    // XXX At this point, all of these items are considered OPEN
             ItemInfo itemInfo = new ItemInfo(i_id, i_current_price, i_end_date, i_num_bids);
             profile.addItemToProperQueue(itemInfo, false);
             ctr++;
@@ -730,6 +730,7 @@ public class AuctionMarkProfile {
         return (added);
     }
     
+    // This guy is called by closeAuction
     public void updateItemQueues() {
         Timestamp currentTime = this.updateAndGetCurrentTime();
         assert(currentTime != null);
@@ -756,6 +757,8 @@ public class AuctionMarkProfile {
     }
     
     public ItemStatus addItemToProperQueue(ItemInfo itemInfo, boolean is_loader) {
+	// Called by both the loadItems and updateItems functions
+	
         // Calculate how much time is left for this auction
         Timestamp baseTime = (is_loader ? this.getLoaderStartTime() : this.getCurrentTime());
         assert(itemInfo.endDate != null);
@@ -776,9 +779,19 @@ public class AuctionMarkProfile {
         
         long remaining = itemInfo.endDate.getTime() - baseTime.getTime();
         ItemStatus new_status = (itemInfo.status != null ? itemInfo.status : ItemStatus.OPEN); 
-        // Already ended
+
+	// If the auction has already ended, aka we are in the future
         if (remaining <= AuctionMarkConstants.ITEM_ALREADY_ENDED) {
+		// ItemStatus is never closed, so it needs to have enough bids.
             if (itemInfo.numBids > 0 && itemInfo.status != ItemStatus.CLOSED) {
+		// The question here is whether the item already has a purchase,
+		// or whether we chopped it as part of the ResetDatabase call.
+		// If our purchase was after the close date, its gone, and its fine to set
+		// us to waiting for order.
+		//
+		// However, we might have a purchase record before the cfp_load_stop
+		// and an item record before the cfp_load_start.
+		// If so, we've got problems.
                 new_status = ItemStatus.WAITING_FOR_PURCHASE;
             } else {
                 new_status = ItemStatus.CLOSED;
@@ -790,6 +803,7 @@ public class AuctionMarkProfile {
         }
         
         if (new_status != itemInfo.status) {
+		//LOG.info( "Going to add " + itemInfo.getItemId() + " with status " + itemInfo.status + " to a list using newStatus " + new_status );
             if (itemInfo.status != null)
                 assert(new_status.ordinal() > itemInfo.status.ordinal()) :
                     "Trying to improperly move " + itemInfo + " from " + itemInfo.status + " to " + new_status;

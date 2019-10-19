@@ -23,11 +23,14 @@ import java.util.Map;
 
 import org.apache.commons.collections15.map.ListOrderedMap;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.log4j.Logger;
 
 import com.oltpbenchmark.util.Histogram;
 import com.oltpbenchmark.util.StringUtil;
 
 public class UserIdGenerator implements Iterator<UserId> {
+
+    private static final Logger LOG = Logger.getLogger(UserIdGenerator.class);
 
     private final int numClients;
     private final Integer clientId;
@@ -73,6 +76,7 @@ public class UserIdGenerator implements Iterator<UserId> {
         this.minItemCount = (temp != null ? temp.intValue() : 0);
         
         this.totalUsers = users_per_item_count.getSampleCount();
+	LOG.warn( "totalUsers: " + totalUsers );
         
         this.setCurrentItemCount(this.minItemCount);
     }

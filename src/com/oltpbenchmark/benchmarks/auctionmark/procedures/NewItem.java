@@ -61,6 +61,7 @@ public class NewItem extends Procedure {
         	"i_num_bids," + 
         	"i_num_images," + 
         	"i_num_global_attrs," + 
+		"i_num_comments," +
         	"i_start_date," + 
         	"i_end_date," +
         	"i_status, " +
@@ -79,6 +80,7 @@ public class NewItem extends Procedure {
             "?," +  // i_num_bids
             "?," +  // i_num_images
             "?," +  // i_num_global_attrs
+	    "0" + // i_num_comments
             "?," +  // i_start_date
             "?," +  // i_end_date
             "?," +  // i_status
@@ -159,6 +161,8 @@ public class NewItem extends Procedure {
                         long gag_ids[], long gav_ids[], String images[]) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
+
+	LOG.info( "Going to add new item: " + item_id );
         
         // Calculate endDate
         Timestamp end_date = new Timestamp(currentTime.getTime() + (duration * AuctionMarkConstants.MILLISECONDS_IN_A_DAY));
@@ -228,7 +232,7 @@ public class NewItem extends Procedure {
         sb.append("INSERT INTO ");
         sb.append(AuctionMarkConstants.TABLENAME_ITEM);
         sb.append("(i_id, i_u_id, i_c_id, i_name, i_description, i_user_attributes, i_initial_price, ");
-        sb.append("i_current_price, i_num_bids, i_num_images, i_num_global_attrs, i_start_date, ");
+        sb.append("i_current_price, i_num_bids, i_num_images, i_num_global_attrs, i_num_comments, i_start_date, ");
         sb.append("i_end_date, i_status, i_created, i_updated, i_iattr0) VALUES (");
         sb.append(item_id);
         sb.append(", ");
@@ -251,7 +255,7 @@ public class NewItem extends Procedure {
         sb.append(images.length);
         sb.append(", ");
         sb.append(gav_ids.length);
-        sb.append(", ");
+        sb.append(", 0, ");
         sb.append(currentTime);
         sb.append(", ");
         sb.append(end_date);
@@ -262,6 +266,7 @@ public class NewItem extends Procedure {
         sb.append(", ");
         sb.append(currentTime);
         sb.append(", 1)");
+
         // NOTE: This may fail with a duplicate entry exception because 
         // the client's internal count of the number of items that this seller 
         // already has is wrong. That's ok. We'll just abort and ignore the problem

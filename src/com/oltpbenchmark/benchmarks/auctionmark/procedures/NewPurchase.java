@@ -25,6 +25,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
@@ -38,6 +40,8 @@ import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
  * @author visawee
  */
 public class NewPurchase extends Procedure {
+
+    private static final Logger LOG = Logger.getLogger(NewPurchase.class);
     
     // -----------------------------------------------------------------
     // STATEMENTS
@@ -50,7 +54,7 @@ public class NewPurchase extends Procedure {
     
     public final SQLStmt getMaxBid = new SQLStmt(
         "SELECT * FROM " + AuctionMarkConstants.TABLENAME_ITEM_BID +
-        " WHERE imb_i_id = ? AND imb_u_id = ? " +
+        " WHERE ib_i_id = ? AND ib_u_id = ? " +
         " ORDER BY ib_bid DESC LIMIT 1" 
     );
     
@@ -144,6 +148,8 @@ public class NewPurchase extends Procedure {
     
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
                         long item_id, long seller_id, long ip_id, double buyer_credit) throws SQLException {
+
+	LOG.info( "GOING TO PURCHASE: " + item_id + " with IP_ID: " + ip_id );
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         
         PreparedStatement stmt = null;
@@ -259,6 +265,7 @@ public class NewPurchase extends Procedure {
         sb.append(currentTime);
         sb.append(")");
         updated = RestQuery.restOtherQuery(sb.toString(), 0);
+
         assert(updated == 1);
         
         // Update item status to close
