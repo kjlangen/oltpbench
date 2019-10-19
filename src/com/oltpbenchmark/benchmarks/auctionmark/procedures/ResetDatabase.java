@@ -56,6 +56,7 @@ public class ResetDatabase extends Procedure {
         " WHERE ip_date > ?"
     );
 
+
     public void run(Connection conn) throws SQLException {
         PreparedStatement stmt = null;
         int updated;
