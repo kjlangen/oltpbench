@@ -21,6 +21,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -28,6 +30,7 @@ import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * Remove ITEM entries created after the loader started
@@ -57,30 +60,43 @@ public class ResetDatabase extends Procedure {
     );
 
     public void run(Connection conn) throws SQLException {
-        PreparedStatement stmt = null;
-        int updated;
+        // PreparedStatement stmt = null;
+        long updated;
         
         // We have to get the loaderStopTimestamp from the CONFIG_PROFILE
         // We will then reset any changes that were made after this timestamp
-        ResultSet rs = this.getPreparedStatement(conn, getLoaderStop).executeQuery();
-        boolean adv = rs.next();
-        assert(adv);
-        Timestamp loaderStop = rs.getTimestamp(1);
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT cfp_loader_stop FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_CONFIG_PROFILE);
+        List<Map<String, Object>> rs = RestQuery.restReadQuery(sb.toString(), 0);
+        assert(!rs.isEmpty());
+        Timestamp loaderStop = (Timestamp)rs.get(0).get("cfp_loader_stop");
         assert(loaderStop != null);
-        rs.close();
+
         
         // Reset ITEM information
-        stmt = this.getPreparedStatement(conn, resetItems, ItemStatus.OPEN.ordinal(),
-                                                           loaderStop,
-                                                           ItemStatus.OPEN.ordinal(),
-                                                           loaderStop);
-        updated = stmt.executeUpdate();
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" SET i_status = ");
+        sb.append(ItemStatus.OPEN.ordinal());
+        sb.append(", i_updated = ");
+        sb.append(loaderStop);
+        sb.append(" WHERE i_status != ");
+        sb.append(ItemStatus.OPEN.ordinal());
+        sb.append(" AND i_updated > ");
+        sb.append(loaderStop);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         if (LOG.isDebugEnabled())
             LOG.debug(AuctionMarkConstants.TABLENAME_ITEM + " Reset: " + updated);
         
         // Reset ITEM_PURCHASE
-        stmt = this.getPreparedStatement(conn, deleteItemPurchases, loaderStop);
-        updated = stmt.executeUpdate();
+        sb = new StringBuilder();
+        sb.append("DELETE FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_PURCHASE);
+        sb.append(" WHERE ip_date > ");
+        sb.append(loaderStop);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         if (LOG.isDebugEnabled())
             LOG.debug(AuctionMarkConstants.TABLENAME_ITEM_PURCHASE + " Reset: " + updated);
     }

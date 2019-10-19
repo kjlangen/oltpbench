@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -32,6 +33,7 @@ import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * PostAuction
@@ -92,9 +94,6 @@ public class CloseAuctions extends Procedure {
                               Timestamp startTime, Timestamp endTime) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
-
-//        int orig_isolation = conn.getTransactionIsolation();
-//        conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         
         if (debug)
             LOG.debug(String.format("startTime=%s, endTime=%s, currentTime=%s",
@@ -103,35 +102,38 @@ public class CloseAuctions extends Procedure {
         int closed_ctr = 0;
         int waiting_ctr = 0;
         int round = AuctionMarkConstants.CLOSE_AUCTIONS_ROUNDS;
-        int updated = -1;
-        int col = -1;
-        int param = -1;
-        
-        PreparedStatement dueItemsStmt = this.getPreparedStatement(conn, getDueItems);
-        ResultSet dueItemsTable = null;
-        PreparedStatement maxBidStmt = this.getPreparedStatement(conn, getMaxBid);
-        ResultSet maxBidResults = null;
-        
+        long updated = -1;
+
+        List<Map<String, Object>> dueItemsTable = null;
+        List<Map<String, Object>> maxBidResults = null;
+
         final List<Object[]> output_rows = new ArrayList<Object[]>();
         while (round-- > 0) {
-            param = 1;
-            dueItemsStmt.setTimestamp(param++, startTime);
-            dueItemsStmt.setTimestamp(param++, endTime);
-            dueItemsStmt.setInt(param++, ItemStatus.OPEN.ordinal());
-            dueItemsTable = dueItemsStmt.executeQuery();
-            boolean adv = dueItemsTable.next();
-            if (adv == false) break;
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ");
+            sb.append(AuctionMarkConstants.ITEM_COLUMNS_STR);
+            sb.append(" FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+            sb.append(" WHERE (i_start_date BETWEEN ");
+            sb.append(startTime);
+            sb.append(" AND ");
+            sb.append(endTime);
+            sb.append(") AND ");
+            sb.append(ItemStatus.OPEN.ordinal());
+            sb.append(" ORDER BY i_id ASC LIMIT");
+            sb.append(AuctionMarkConstants.CLOSE_AUCTIONS_ITEMS_PER_ROUND);
+            dueItemsTable = RestQuery.restReadQuery(sb.toString(), 0);
+            if (dueItemsTable.isEmpty()) break;
 
             output_rows.clear();
-            while (dueItemsTable.next()) {
-                col = 1;
-                long itemId = dueItemsTable.getLong(col++);
-                long sellerId = dueItemsTable.getLong(col++);
-                String i_name = dueItemsTable.getString(col++);
-                double currentPrice = dueItemsTable.getDouble(col++);
-                long numBids = dueItemsTable.getLong(col++);
-                Timestamp endDate = dueItemsTable.getTimestamp(col++);
-                ItemStatus itemStatus = ItemStatus.get(dueItemsTable.getLong(col++));
+            for (Map<String, Object> dueItemsRow : dueItemsTable) {
+                long itemId = (long)dueItemsRow.get("i_id");
+                long sellerId = (long)dueItemsRow.get("i_u_id");
+                String i_name = (String)dueItemsRow.get("i_name");
+                double currentPrice = (double)dueItemsRow.get("i_current_price");
+                long numBids = (long)dueItemsRow.get("i_num_bids");
+                Timestamp endDate = (Timestamp)dueItemsRow.get("i_end_date");
+                ItemStatus itemStatus = ItemStatus.get((long)dueItemsRow.get("i_status"));
                 Long bidId = null;
                 Long buyerId = null;
                 
@@ -145,21 +147,40 @@ public class CloseAuctions extends Procedure {
                 // query optimizer for LEFT OUTER JOINs
                 if (numBids > 0) {
                     waiting_ctr++;
+
+                    sb = new StringBuilder();
+                    sb.append("SELECT imb_ib_id, ib_buyer_id");
+                    sb.append(" FROM ");
+                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+                    sb.append(", ");
+                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+                    sb.append(" WHERE imb_i_id = ");
+                    sb.append(itemId);
+                    sb.append(" AND imb_u_id = ");
+                    sb.append(sellerId);
+                    sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id ");
+                    maxBidResults = RestQuery.restReadQuery(sb.toString(), 0);
+                    assert(maxBidResults != null);
                     
-                    param = 1;
-                    maxBidStmt.setLong(param++, itemId);
-                    maxBidStmt.setLong(param++, sellerId);
-                    maxBidResults = maxBidStmt.executeQuery();
-                    adv = maxBidResults.next();
-                    assert(adv);
-                    
-                    col = 1;
-                    bidId = maxBidResults.getLong(col++);
-                    buyerId = maxBidResults.getLong(col++);
-                    updated = this.getPreparedStatement(conn, insertUserItem, buyerId, itemId, sellerId, currentTime).executeUpdate();
+                    bidId = (long)maxBidResults.get(0).get("imb_ib_id");
+                    buyerId = (long)maxBidResults.get(0).get("ib_buyer_id");
+                    sb = new StringBuilder();
+                    sb.append("INSERT INTO ");
+                    sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
+                    sb.append("(ui_u_id, ui_i_id, ui_i_u_id, ui_created)");
+                    sb.append("VALUES(");
+                    sb.append(bidId);
+                    sb.append(", ");
+                    sb.append(buyerId);
+                    sb.append(", ");
+                    sb.append(sellerId);
+                    sb.append(", ");
+                    sb.append(currentTime);
+                    sb.append(")");
+                    updated = RestQuery.restOtherQuery(sb.toString(), 0);
                     assert(updated == 1);
+
                     itemStatus = ItemStatus.WAITING_FOR_PURCHASE;
-                    maxBidResults.close();
                 }
                 // No bid on this item - set status to CLOSED
                 else {
@@ -168,7 +189,18 @@ public class CloseAuctions extends Procedure {
                 }
                 
                 // Update Status!
-                updated = this.getPreparedStatement(conn, updateItemStatus, itemStatus.ordinal(), currentTime, itemId, sellerId).executeUpdate();
+                sb = new StringBuilder();
+                sb.append("UPDATE ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+                sb.append(" SET i_status = ");
+                sb.append(itemStatus.ordinal());
+                sb.append(", i_updated = ");
+                sb.append(currentTime);
+                sb.append(" WHERE i_id = ");
+                sb.append(itemId);
+                sb.append(" AND i_u_id = ");
+                sb.append(sellerId);
+                updated = RestQuery.restOtherQuery(sb.toString(), 0);
                 if (debug)
                     LOG.debug(String.format("Updated Status for Item %d => %s", itemId, itemStatus));
                 
@@ -185,13 +217,11 @@ public class CloseAuctions extends Procedure {
                 };
                 output_rows.add(row);
             } // WHILE
-            dueItemsTable.close();
-            if (round > 0) conn.commit();
-        } // WHILE
+        } // FOR
 
         if (debug)
             LOG.debug(String.format("Updated Auctions - Closed=%d / Waiting=%d", closed_ctr, waiting_ctr));
-//        conn.setTransactionIsolation(orig_isolation);
+
         return (output_rows);
     }
 }

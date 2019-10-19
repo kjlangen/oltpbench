@@ -22,12 +22,15 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * NewPurchase
@@ -144,51 +147,91 @@ public class NewPurchase extends Procedure {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         
         PreparedStatement stmt = null;
-        ResultSet results = null;
-        int updated;
+        List<Map<String, Object>> results = null;
+        long updated;
         boolean adv;
+        StringBuilder sb;
         
         // HACK: Check whether we have an ITEM_MAX_BID record. If not, we'll insert one
-        stmt = this.getPreparedStatement(conn, getItemMaxBid, item_id, seller_id);
-        results = stmt.executeQuery();
-        if (results.next() == false) {
-            results.close();
-            stmt = this.getPreparedStatement(conn, getMaxBid, item_id, seller_id);
-            results = stmt.executeQuery();
-            adv = results.next();
-            assert(adv);
-            long bid_id = results.getLong(1);
+        sb = new StringBuilder();
+        sb.append("SELECT imb_i_id, imb_u_id FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+        sb.append(" WHERE imb_i_id = ");
+        sb.append(item_id);
+        sb.append(" AND imb_u_id = ");
+        sb.append(seller_id);
+        results = RestQuery.restReadQuery(sb.toString(), 0);
 
-            updated = this.getPreparedStatement(conn, insertItemMaxBid, item_id,
-                                                                        seller_id,
-                                                                        bid_id,
-                                                                        item_id,
-                                                                        seller_id,
-                                                                        currentTime,
-                                                                        currentTime).executeUpdate();
+        if (results.isEmpty()) {
+            // TODO: altered the where condition since there were no columns with those names
+            // in the original table as near as I could tell
+            sb = new StringBuilder();
+            sb.append("SELECT ib_id, ib_i_id, ib_u_id, ib_bid FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+            sb.append(" WHERE ib_i_id = ");
+            sb.append(item_id);
+            sb.append(" AND ib_u_id = ");
+            sb.append(seller_id);
+            sb.append(" ORDER BY ib_bid DESC LIMIT 1");
+            results = RestQuery.restReadQuery(sb.toString(), 0);
+            assert(!results.isEmpty());
+            long bid_id = (long)results.get(0).get("ib_id");
+
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+            sb.append("(imb_i_id, imb_u_id, imb_ib_id, imb_ib_i_id, imb_ib_u_id, imb_created, imb_updated)");
+            sb.append(" VALUES (");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(bid_id);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(")");
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
             assert(updated == 1) :
                 String.format("Failed to update %s for Seller #%d's Item #%d",
                               AuctionMarkConstants.TABLENAME_ITEM_MAX_BID, seller_id, item_id);
         }
-        results.close();
         
         // Get the ITEM_MAX_BID record so that we know what we need to process
         // At this point we should always have an ITEM_MAX_BID record
-        stmt = this.getPreparedStatement(conn, getItemInfo, item_id, seller_id);
-        results = stmt.executeQuery();
-        if (results.next() == false) {
-            String msg = "No ITEM_MAX_BID is available record for item " + item_id;
-            throw new UserAbortException(msg);
+        sb = new StringBuilder();
+        sb.append("SELECT i_num_bids, i_current_price, i_end_date, ib_id, ib_buyer_id, u_balance");
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(", ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+        sb.append(", ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+        sb.append(", ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        sb.append(" AND imb_i_id = i_id AND imb_u_id = i_u_id AND imb_ib_id = ib_id");
+        sb.append(" AND imb_ib_i_id = ib_i_id AND imb_ib_u_id = ib_u_id AND ib_buyer_id = u_id");
+        results = RestQuery.restReadQuery(sb.toString(), 0);
+        if (results.isEmpty()) {
+            throw new UserAbortException("No ITEM_MAX_BID is available for item " + item_id);
         }
-        int col = 1;
-        long i_num_bids = results.getLong(col++);
-        double i_current_price = results.getDouble(col++);
-        Timestamp i_end_date = results.getTimestamp(col++);
+
+        long i_num_bids = (long)results.get(0).get("i_num_bids");
+        double i_current_price = (double)results.get(0).get("i_current_price");
+        Timestamp i_end_date = (Timestamp)results.get(0).get("i_end_date");
         ItemStatus i_status = ItemStatus.CLOSED;
-        long ib_id = results.getLong(col++);
-        long ib_buyer_id = results.getLong(col++);
-        double u_balance = results.getDouble(col++);
-        results.close();
+        long ib_id = (long)results.get(0).get("ib_id");
+        long ib_buyer_id = (long)results.get(0).get("ib_buyer_id");
+        double u_balance = (double)results.get(0).get("u_balance");
         
         // Make sure that the buyer has enough money to cover this charge
         // We can add in a credit for the buyer's account
@@ -200,36 +243,112 @@ public class NewPurchase extends Procedure {
         }
 
         // Set item_purchase_id
-        updated = this.getPreparedStatement(conn, insertPurchase, ip_id, ib_id, item_id, seller_id, currentTime).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("INSERT INTO ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_PURCHASE);
+        sb.append(" (ip_id, ip_ib_id, ip_ib_i_id, ip_ib_u_id, ip_date)");
+        sb.append(" VALUES (");
+        sb.append(ip_id);
+        sb.append(", ");
+        sb.append(ib_id);
+        sb.append(", ");
+        sb.append(item_id);
+        sb.append(", ");
+        sb.append(seller_id);
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(")");
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1);
         
         // Update item status to close
-        updated = this.getPreparedStatement(conn, updateItem, currentTime, item_id, seller_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" SET i_status = ");
+        sb.append(ItemStatus.CLOSED.ordinal());
+        sb.append(", i_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
             String.format("Failed to update %s for Seller #%d's Item #%d",
                           AuctionMarkConstants.TABLENAME_ITEM, seller_id, item_id);
         
         // And update this the USERACT_ITEM record to link it to the new ITEM_PURCHASE record
         // If we don't have a record to update, just go ahead and create it
-        updated = this.getPreparedStatement(conn, updateUserItem, ip_id, ib_id, item_id, seller_id,
-                                                                  ib_buyer_id, item_id, seller_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
+        sb.append(" SET ui_ip_id = ");
+        sb.append(ip_id);
+        sb.append(", ui_ip_ib_id = ");
+        sb.append(ib_id);
+        sb.append(", ui_ip_ib_i_id = ");
+        sb.append(item_id);
+        sb.append(", ui_ip_ib_u_id = ");
+        sb.append(seller_id);
+        sb.append(" WHERE ui_u_id = ");
+        sb.append(ib_buyer_id);
+        sb.append(" AND ui_i_id = ");
+        sb.append(item_id);
+        sb.append(" AND ui_i_u_id = ");
+        sb.append(seller_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+
         if (updated == 0) {
-            updated = this.getPreparedStatement(conn, insertUserItem, ib_buyer_id, item_id, seller_id,
-                                                                      ip_id, ib_id, item_id, seller_id,
-                                                                      currentTime).executeUpdate();
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
+            sb.append(" (ui_u_id, ui_i_id, ui_i_u_id, ui_ip_id, ui_ip_ib_id, ui_ip_ib_i_id, ui_ip_ib_u_id, ui_created)");
+            sb.append(" VALUES (");
+            sb.append(ib_buyer_id);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(ip_id);
+            sb.append(", ");
+            sb.append(ib_id);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(")");
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
         }
         assert(updated == 1) :
             String.format("Failed to update %s for Buyer #%d's Item #%d",
                           AuctionMarkConstants.TABLENAME_USERACCT_ITEM, ib_buyer_id, item_id);
         
-        // Decrement the buyer's account 
-        updated = this.getPreparedStatement(conn, updateUserBalance, -1*(i_current_price) + buyer_credit, ib_buyer_id).executeUpdate();
+        // Decrement the buyer's account
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" SET u_balance = u_balance + ");
+        sb.append(-1*(i_current_price) + buyer_credit);
+        sb.append(" WHERE u_id = ");
+        sb.append(ib_buyer_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
             String.format("Failed to update %s for Buyer #%d",
                           AuctionMarkConstants.TABLENAME_USERACCT, ib_buyer_id);
         
         // And credit the seller's account
-        this.getPreparedStatement(conn, updateUserBalance, i_current_price, seller_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" SET u_balance = u_balance + ");
+        sb.append(i_current_price);
+        sb.append(" WHERE u_id = ");
+        sb.append(seller_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
             String.format("Failed to update %s for Seller #%d",
                           AuctionMarkConstants.TABLENAME_USERACCT, seller_id);

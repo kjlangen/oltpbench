@@ -25,6 +25,7 @@ import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * NewCommentResponse
@@ -58,8 +59,31 @@ public class NewCommentResponse extends Procedure {
     public void run(Connection conn, Timestamp benchmarkTimes[],
                     long item_id, long seller_id, long comment_id, String response) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
-        this.getPreparedStatement(conn, updateComment, response, currentTime, comment_id, item_id, seller_id).executeUpdate();
-        this.getPreparedStatement(conn, updateUser, currentTime, seller_id).executeUpdate();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_COMMENT);
+        sb.append(" SET ic_response = ");
+        sb.append(RestQuery.quoteAndSanitize(response));
+        sb.append(", ic_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE ic_id = ");
+        sb.append(comment_id);
+        sb.append(" AND ic_i_id = ");
+        sb.append(item_id);
+        sb.append(" AND ic_u_id = ");
+        sb.append(seller_id);
+        RestQuery.restOtherQuery(sb.toString(), 0);
+
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" SET u_comments = u_comments - 1, u_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE u_id = ");
+        sb.append(seller_id);
+        RestQuery.restOtherQuery(sb.toString(), 0);
+
         return;
     }	
 }

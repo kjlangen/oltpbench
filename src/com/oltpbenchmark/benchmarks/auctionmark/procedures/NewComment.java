@@ -22,11 +22,14 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * NewComment
@@ -79,27 +82,61 @@ public class NewComment extends Procedure {
     	
         // Set comment_id
         long ic_id = 0;
-        PreparedStatement stmt = this.getPreparedStatement(conn, getItemComments, item_id, seller_id);
-        ResultSet results = stmt.executeQuery();
-        if (results.next()) {
-            ic_id = results.getLong(1) + 1;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT i_num_comments");
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
+        if (!results.isEmpty()) {
+            ic_id = (long)results.get(0).get("i_num_comments") + 1;
         }
-        results.close();
 
-        this.getPreparedStatement(conn, insertItemComment, ic_id,
-                                                           item_id,
-                                                           seller_id,
-                                                           buyer_id,
-                                                           question,
-                                                           currentTime,
-                                                           currentTime).executeUpdate();
-        this.getPreparedStatement(conn, updateItemComments, item_id, seller_id).executeUpdate();
-        this.getPreparedStatement(conn, updateUser, currentTime, seller_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("INSERT INTO ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM_COMMENT);
+        sb.append("(ic_id, ic_i_id, ic_u_id, ic_buyer_id, ic_question, ic_created, ic_updated)");
+        sb.append(" VALUES (");
+        sb.append(ic_id);
+        sb.append(", ");
+        sb.append(item_id);
+        sb.append(", ");
+        sb.append(seller_id);
+        sb.append(", ");
+        sb.append(buyer_id);
+        sb.append(", ");
+        sb.append(RestQuery.quoteAndSanitize(question));
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(")");
+        RestQuery.restOtherQuery(sb.toString(), 0);
+
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" SET i_num_comments = i_num_comments + 1");
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        RestQuery.restOtherQuery(sb.toString(), 0);
+
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" SET u_comments = u_comments + 1, u_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE u_id = ");
+        sb.append(seller_id);
+        RestQuery.restOtherQuery(sb.toString(), 0);
 
         // Return new ic_id
-        return new Object[]{ ic_id,
-                             item_id,
-                             seller_id } ;
+        return (new Object[]{ ic_id, item_id, seller_id });
     }	
 	
 }

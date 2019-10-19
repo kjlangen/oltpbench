@@ -22,10 +22,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * Get Item Information
@@ -57,31 +60,46 @@ public class GetItem extends Procedure {
     
     public Object[][] run(Connection conn, Timestamp benchmarkTimes[],
                           long item_id, long seller_id) throws SQLException {
-        PreparedStatement item_stmt = this.getPreparedStatement(conn, getItem, item_id, seller_id);
-        ResultSet item_results = item_stmt.executeQuery();
-        if (item_results.next() == false) {
-            item_results.close();
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT ");
+        sb.append(AuctionMarkConstants.ITEM_COLUMNS_STR);
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        List<Map<String, Object>> item_results = RestQuery.restReadQuery(sb.toString(), 0);
+        if (item_results.size() == 0) {
             throw new UserAbortException("Invalid item " + item_id);
         }
-        Object item_row[] = new Object[item_results.getMetaData().getColumnCount()];
+        Object item_row[] = new Object[AuctionMarkConstants.ITEM_COLUMNS.length];
+
         for (int i = 0; i < item_row.length; i++) {
-            item_row[i] = item_results.getObject(i+1);
-        } // FOR
-        item_results.close();
+            item_row[i] = item_results.get(0).get(AuctionMarkConstants.ITEM_COLUMNS[i]);
+        }
         
-        PreparedStatement user_stmt = this.getPreparedStatement(conn, getUser, seller_id);
-        ResultSet user_results = user_stmt.executeQuery();
+        String user_columns = "u_id, u_rating, u_created, u_sattr0, u_sattr1, u_sattr2, u_sattr3, u_sattr4, r_name";
+        sb = new StringBuilder();
+        sb.append("SELECT ");
+        sb.append(user_columns);
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(", ");
+        sb.append(AuctionMarkConstants.TABLENAME_REGION);
+        sb.append(" WHERE u_id = ");
+        sb.append(seller_id);
+        sb.append(" AND u_r_id = r_id");
+        List<Map<String, Object>> user_results = RestQuery.restReadQuery(sb.toString(), 0);
+
         Object user_row[] = null;
-        try {
-            if (user_results.next() == false) {
-                throw new UserAbortException("Invalid user id " + seller_id);
-            }
-            user_row = new Object[user_results.getMetaData().getColumnCount()];
-            for (int i = 0; i < user_row.length; i++) {
-                user_row[i] = user_results.getObject(i+1);
-            } // FOR
-        } finally {
-            user_results.close();
+        if (user_results.size() == 0) {
+            throw new UserAbortException("Invalid user id " + seller_id);
+        }
+        String[] user_columns_arr = user_columns.split(", ");
+        user_row = new Object[user_columns_arr.length];
+        for (int i = 0; i < user_columns_arr.length; i++) {
+            user_row[i] = user_results.get(0).get(user_columns_arr[i]);
         }
         
         return (new Object[][]{ item_row, user_row });

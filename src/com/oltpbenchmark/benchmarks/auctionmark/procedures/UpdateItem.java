@@ -22,11 +22,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * UpdateItem
@@ -82,8 +85,18 @@ public class UpdateItem extends Procedure {
                        boolean delete_attribute, long add_attribute[]) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         
-        PreparedStatement stmt = this.getPreparedStatement(conn, updateItem, description, currentTime, item_id, seller_id);
-        int updated = stmt.executeUpdate();
+        StringBuilder sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" SET i_description = ");
+        sb.append(RestQuery.quoteAndSanitize(description));
+        sb.append(", i_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        long updated = RestQuery.restOtherQuery(sb.toString(), 0);
         if (updated == 0) {
             throw new UserAbortException("Unable to update closed auction");
         }
@@ -92,8 +105,17 @@ public class UpdateItem extends Procedure {
         if (delete_attribute) {
             // Only delete the first (if it even exists)
             long ia_id = AuctionMarkUtil.getUniqueElementId(item_id, 0);
-            stmt = this.getPreparedStatement(conn, deleteItemAttribute, ia_id, item_id, seller_id);
-            updated = stmt.executeUpdate();
+            sb = new StringBuilder();
+            sb.append("DELETE FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_ATTRIBUTE);
+            sb.append(" WHERE ia_id = ");
+            sb.append(ia_id);
+            sb.append(" AND ia_i_id = ");
+            sb.append(item_id);
+            sb.append(" AND ia_u_id = ");
+            sb.append(seller_id);
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+
         }
         // ADD ITEM_ATTRIBUTE
         if (add_attribute.length > 0 && add_attribute[0] != -1) {
@@ -102,22 +124,40 @@ public class UpdateItem extends Procedure {
             long gav_id = add_attribute[1];
             long ia_id = -1;
             
-            stmt = this.getPreparedStatement(conn, getMaxItemAttributeId, item_id, seller_id);
-            ResultSet results = stmt.executeQuery();
-            if (results.next()) {
-                ia_id = results.getLong(0);
+            sb = new StringBuilder();
+            sb.append("SELECT MAX(ia_id) FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_ATTRIBUTE);
+            sb.append(" WHERE ia_i_id = ");
+            sb.append(item_id);
+            sb.append(" AND ia_u_id = ");
+            sb.append(seller_id);
+            List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
+            if (!results.isEmpty()) {
+                ia_id = (long)results.get(0).get("ia_id");
             } else {
                 ia_id = AuctionMarkUtil.getUniqueElementId(item_id, 0);
             }
-            results.close();
             assert(ia_id > 0);
 
-            stmt = this.getPreparedStatement(conn, insertItemAttribute, ia_id, item_id, seller_id, gag_id, gav_id);
-            updated = stmt.executeUpdate();
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_ATTRIBUTE);
+            sb.append(" (ia_id, ia_i_id, ia_u_id, ia_gav_id, ia_gag_id)");
+            sb.append(" VALUES (");
+            sb.append(ia_id);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(gag_id);
+            sb.append(", ");
+            sb.append(gav_id);
+            sb.append(")");
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
             assert(updated == 1);
         }
         
         return (true);
-    }	
-	
+    }
 }

@@ -22,6 +22,8 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -31,6 +33,7 @@ import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.exceptions.DuplicateItemIdException;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 import com.oltpbenchmark.util.SQLUtil;
 
 /**
@@ -159,6 +162,7 @@ public class NewItem extends Procedure {
         
         // Calculate endDate
         Timestamp end_date = new Timestamp(currentTime.getTime() + (duration * AuctionMarkConstants.MILLISECONDS_IN_A_DAY));
+        StringBuilder sb = null;
         
         if (debug) {
             LOG.debug("NewItem :: run ");
@@ -172,110 +176,171 @@ public class NewItem extends Procedure {
 
         // Get attribute names and category path and append
         // them to the item description
-        PreparedStatement stmt = null;
-        ResultSet results = null;
-        int updated = -1;
+        List<Map<String, Object>> results = null;
+        long updated = -1;
         
         // ATTRIBUTES
         description += "\nATTRIBUTES: ";
-        stmt = this.getPreparedStatement(conn, getGlobalAttribute);
         for (int i = 0; i < gag_ids.length; i++) {
-            int col = 1;
-            stmt.setLong(col++, gav_ids[i]);
-            stmt.setLong(col++, gag_ids[i]);
-            results = stmt.executeQuery();
-            if (results.next()) {
-                col = 1;
-                description += String.format(" * %s -> %s\n", results.getString(col++), results.getString(col++));
+            sb = new StringBuilder();
+            sb.append("SELECT gag_name, gav_name, gag_c_id FROM");
+            sb.append(AuctionMarkConstants.TABLENAME_GLOBAL_ATTRIBUTE_GROUP);
+            sb.append(", ");
+            sb.append(AuctionMarkConstants.TABLENAME_GLOBAL_ATTRIBUTE_VALUE);
+            sb.append(" WHERE gav_id = ");
+            sb.append(gav_ids[i]);
+            sb.append(" AND gav_gag_id = ");
+            sb.append(gag_ids[i]);
+            sb.append(" AND gav_gag_id = gag_id");
+            results = RestQuery.restReadQuery(sb.toString(), 0);
+            if (!results.isEmpty()) {
+                description += String.format(" * %s -> %s\n", results.get(0).get("gag_name"), results.get(0).get("gav_name"));
             }
-            results.close();
-        } // FOR
+        }
         
         // CATEGORY
-        stmt = this.getPreparedStatement(conn, getCategory, category_id);
-        results = stmt.executeQuery();
-        boolean adv = results.next();
-        assert(adv);
-        String category_name = String.format("%s[%d]", results.getString(2), results.getInt(1));
-        results.close();
+        sb = new StringBuilder();
+        sb.append("SELECT c_id, c_name, c_parent_id FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_CATEGORY);
+        sb.append(" WHERE c_id = ");
+        sb.append(category_id);
+        results = RestQuery.restReadQuery(sb.toString(), 0);
+        assert(!results.isEmpty());
+        String category_name = String.format("%s[%d]", results.get(0).get("c_name"), results.get(0).get("c_id"));
         
         // CATEGORY PARENT
-        stmt = this.getPreparedStatement(conn, getCategoryParent, category_id);
-        results = stmt.executeQuery();
+        sb = new StringBuilder();
+        sb.append("SELECT c_id, c_name, c_parent_id FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_CATEGORY);
+        sb.append(" WHERE c_parent_id = ");
+        sb.append(category_id);
+        results = RestQuery.restReadQuery(sb.toString(), 0);
         String category_parent = null;
-        if (results.next()) {
-            category_parent = String.format("%s[%d]", results.getString(2), results.getInt(1)); 
+        if (!results.isEmpty()) {
+            category_parent = String.format("%s[%d]", results.get(0).get("c_name"), results.get(0).get("c_id"));
         } else {
             category_parent = "<ROOT>";
         }
         description += String.format("\nCATEGORY: %s >> %s", category_parent, category_name);
-        results.close();
 
         // Insert new ITEM tuple
-        stmt = this.getPreparedStatement(conn, insertItem,
-                                               item_id,         // i_id
-                                               seller_id,       // i_u_id
-                                               category_id,     // i_c_id
-                                               name,            // i_name
-                                               description,     // i_description
-                                               attributes,      // i_user_attributes
-                                               initial_price,   // i_initial_proce
-                                               initial_price,   // i_current_price
-                                               0,               // i_num_bids
-                                               images.length,   // i_num_images
-                                               gav_ids.length,  // i_num_global_attrs
-                                               currentTime,     // i_start_date 
-                                               end_date,        // i_end_date
-                                               ItemStatus.OPEN.ordinal(), // i_status
-                                               currentTime,     // i_created
-                                               currentTime      // i_updated
-       );
+        sb = new StringBuilder();
+        sb.append("INSERT INTO ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append("(i_id, i_u_id, i_c_id, i_name, i_description, i_user_attributes, i_initial_price, ");
+        sb.append("i_current_price, i_num_bids, i_num_images, i_num_global_attrs, i_start_date, ");
+        sb.append("i_end_date, i_status, i_created, i_updated, i_iattr0) VALUES (");
+        sb.append(item_id);
+        sb.append(", ");
+        sb.append(seller_id);
+        sb.append(", ");
+        sb.append(category_id);
+        sb.append(", ");
+        sb.append(name);
+        sb.append(", ");
+        sb.append(description);
+        sb.append(", ");
+        sb.append(attributes);
+        sb.append(", ");
+        sb.append(initial_price);
+        sb.append(", ");
+        sb.append(initial_price);
+        sb.append(", ");
+        sb.append(0);
+        sb.append(", ");
+        sb.append(images.length);
+        sb.append(", ");
+        sb.append(gav_ids.length);
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(", ");
+        sb.append(end_date);
+        sb.append(", ");
+        sb.append(ItemStatus.OPEN.ordinal());
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(", 1)");
         // NOTE: This may fail with a duplicate entry exception because 
         // the client's internal count of the number of items that this seller 
         // already has is wrong. That's ok. We'll just abort and ignore the problem
         // Eventually the client's internal cache will catch up with what's in the database
+        // try {
+        //     updated = stmt.executeUpdate();
+        // } catch (SQLException ex) {
+        //     if (SQLUtil.isDuplicateKeyException(ex)) {
+        //         conn.rollback();
+        //         results = this.getPreparedStatement(conn, getSellerItemCount, seller_id).executeQuery();
+        //         adv = results.next();
+        //         assert(adv);
+        //         int item_count = results.getInt(1);
+        //         results.close();
+        //         throw new DuplicateItemIdException(item_id, seller_id, item_count, ex);
+        //     } else throw ex;
+        // }
         try {
-            updated = stmt.executeUpdate();
-        } catch (SQLException ex) {
-            if (SQLUtil.isDuplicateKeyException(ex)) {
-                conn.rollback();
-                results = this.getPreparedStatement(conn, getSellerItemCount, seller_id).executeQuery();
-                adv = results.next();
-                assert(adv);
-                int item_count = results.getInt(1);
-                results.close();
-                throw new DuplicateItemIdException(item_id, seller_id, item_count, ex);
-            } else throw ex;
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        } catch (Exception ex) {
+            sb = new StringBuilder();
+            sb.append("SELECT COUNT(*) AS all_count FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+            sb.append(" WHERE i_u_id = ");
+            sb.append(seller_id);
+            results = RestQuery.restReadQuery(sb.toString(), 0);
+            assert(!results.isEmpty());
+            int item_count = (int)results.get(0).get("all_count");
+            throw new DuplicateItemIdException(item_id, seller_id, item_count, ex);
         }
         assert(updated == 1);
 
         // Insert ITEM_ATTRIBUTE tuples
-        stmt = this.getPreparedStatement(conn, insertItemAttribute);
         for (int i = 0; i < gav_ids.length; i++) {
-            int param = 1;
-            stmt.setLong(param++, AuctionMarkUtil.getUniqueElementId(item_id, i));
-            stmt.setLong(param++, item_id);
-            stmt.setLong(param++, seller_id);
-            stmt.setLong(param++, gag_ids[i]);
-            stmt.setLong(param++, gag_ids[i]);
-            updated = stmt.executeUpdate();
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_ATTRIBUTE);
+            sb.append("(ia_id, ia_i_id, ia_u_id, ia_gav_id, ia_gag_id) VALUES(");
+            sb.append(AuctionMarkUtil.getUniqueElementId(item_id, i));
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(gag_ids[i]);
+            sb.append(", ");
+            sb.append(gag_ids[i]);
+            sb.append(")");
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
             assert(updated == 1);
-        } // FOR
+        }
         
         // Insert ITEM_IMAGE tuples
-        stmt = this.getPreparedStatement(conn, insertImage); 
         for (int i = 0; i < images.length; i++) {
-            int param = 1;
-            stmt.setLong(param++, AuctionMarkUtil.getUniqueElementId(item_id, i));
-            stmt.setLong(param++, item_id);
-            stmt.setLong(param++, seller_id);
-            stmt.setString(param++, images[i]);
-            updated = stmt.executeUpdate();
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_IMAGE);
+            sb.append("(ii_id, ii_i_id, ii_u_id, ii_sattr0) VALUES(");
+            sb.append(AuctionMarkUtil.getUniqueElementId(item_id, i));
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(images[i]);
+            sb.append(")");
+            updated = RestQuery.restOtherQuery(sb.toString(), 0);
             assert(updated == 1);
-        } // FOR
+        }
 
         // Update listing fee
-        updated = this.getPreparedStatement(conn, updateUserBalance, currentTime, seller_id).executeUpdate();
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append(" SET u_balance = u_balance - 1, u_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE u_id = ");
+        sb.append(seller_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1);
         
         // Return new item_id and user_id

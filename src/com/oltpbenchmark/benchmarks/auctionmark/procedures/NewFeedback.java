@@ -22,11 +22,14 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * NewFeedback
@@ -81,25 +84,56 @@ public class NewFeedback extends Procedure {
 
         // Check to make sure they're not trying to add feedback
         // twice for the same ITEM
-        PreparedStatement stmt = this.getPreparedStatement(conn, checkUserFeedback, user_id, i_id, seller_id, from_id);
-        ResultSet rs = stmt.executeQuery();
-        if (rs.next()) {
-            rs.close();
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT uf_i_id, uf_i_u_id, uf_from_id ");
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT_FEEDBACK);
+        sb.append(" WHERE uf_u_id = ");
+        sb.append(user_id);
+        sb.append(" AND uf_i_id = ");
+        sb.append(i_id);
+        sb.append(" AND uf_i_u_id = ");
+        sb.append(seller_id);
+        sb.append(" AND uf_from_id = ");
+        sb.append(from_id);
+        List<Map<String, Object>> rs = RestQuery.restReadQuery(sb.toString(), 0);
+        if (!rs.isEmpty()) {
             throw new UserAbortException("Trying to add feedback for item " + i_id + " twice");
         }
-        rs.close();
 
-        stmt = this.getPreparedStatement(conn, insertFeedback, user_id,
-                                                               i_id,
-                                                               seller_id,
-                                                               from_id,
-                                                               rating,
-                                                               currentTime,
-                                                               comment);
-        int updated = stmt.executeUpdate();
+        sb = new StringBuilder();
+        sb.append("INSERT INTO ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT_FEEDBACK);
+        sb.append(" (uf_u_id, uf_i_id, uf_i_u_id, uf_from_id, uf_rating, uf_date, uf_sattr0) ");
+        sb.append("VALUES (");
+        sb.append(user_id);
+        sb.append(", ");
+        sb.append(i_id);
+        sb.append(", ");
+        sb.append(seller_id);
+        sb.append(", ");
+        sb.append(from_id);
+        sb.append(", ");
+        sb.append(rating);
+        sb.append(", ");
+        sb.append(currentTime);
+        sb.append(", ");
+        sb.append(RestQuery.quoteAndSanitize(comment));
+        sb.append(")");
+        long updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
             "Failed to add feedback for Item #" + i_id;
-        updated = this.getPreparedStatement(conn, updateUser, rating, currentTime, user_id).executeUpdate();
+
+        sb = new StringBuilder();
+        sb.append("UPDATE ");
+        sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
+        sb.append("SET u_rating = u_rating + ");
+        sb.append(rating);
+        sb.append(", u_updated = ");
+        sb.append(currentTime);
+        sb.append(" WHERE u_id = ");
+        sb.append(user_id);
+        updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
             "Failed to updated User #" + user_id;
 

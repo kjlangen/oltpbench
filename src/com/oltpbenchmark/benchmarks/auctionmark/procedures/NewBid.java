@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -32,6 +34,7 @@ import com.oltpbenchmark.benchmarks.auctionmark.util.AuctionMarkUtil;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemId;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
 import com.oltpbenchmark.benchmarks.auctionmark.util.UserId;
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 /**
  * NewBid
@@ -142,24 +145,30 @@ public class NewBid extends Procedure {
         if (debug) LOG.debug(String.format("Attempting to place new bid on Item %d [buyer=%d, bid=%.2f]",
                                            item_id, buyer_id, newBid));
 
-        PreparedStatement stmt = null;
-        ResultSet results = null;
+        // PreparedStatement stmt = null;
+        // ResultSet results = null;
+        StringBuilder sb = null;
+        List<Map<String, Object>> results = null;
         
         // Check to make sure that we can even add a new bid to this item
         // If we fail to get back an item, then we know that the auction is closed
-        stmt = this.getPreparedStatement(conn, getItem, item_id, seller_id); // , currentTime);
-        results = stmt.executeQuery();
-        if (results.next() == false) {
-            results.close();
+        sb = new StringBuilder();
+        sb.append("SELECT i_initial_price, i_current_price, i_num_bids, i_end_date, i_status");
+        sb.append(" FROM ");
+        sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+        sb.append(" WHERE i_id = ");
+        sb.append(item_id);
+        sb.append(" AND i_u_id = ");
+        sb.append(seller_id);
+        results = RestQuery.restReadQuery(sb.toString(), 0);
+        if (results.isEmpty()) {
             throw new UserAbortException("Invalid item " + item_id);
         }
-        int col = 1;
-        double i_initial_price = results.getDouble(col++);
-        double i_current_price = results.getDouble(col++);
-        long i_num_bids = results.getLong(col++);
-        Timestamp i_end_date = results.getTimestamp(col++);
-        ItemStatus i_status = ItemStatus.get(results.getLong(col++));
-        results.close();
+        double i_initial_price = (double)results.get(0).get("i_initial_price");
+        double i_current_price = (double)results.get(0).get("i_current_price");
+        long i_num_bids = (long)results.get(0).get("i_num_bids");
+        Timestamp i_end_date = (Timestamp)results.get(0).get("i_end_date");
+        ItemStatus i_status = ItemStatus.get((long)results.get(0).get("i_status"));
         long newBidId = 0;
         long newBidMaxBuyerId = buyer_id;
         
@@ -175,24 +184,36 @@ public class NewBid extends Procedure {
         if (i_num_bids > 0) {
             // Get the next ITEM_BID id for this item
             if (debug) LOG.debug("Retrieving ITEM_MAX_BID information for " + ItemId.toString(item_id));
-            stmt = this.getPreparedStatement(conn, getMaxBidId, item_id, seller_id);
-            results = stmt.executeQuery();
-            boolean advanceRow = results.next();
-            assert (advanceRow);
-            newBidId = results.getLong(1) + 1;
-            results.close();
+
+            sb = new StringBuilder();
+            sb.append("SELECT MAX(ib_id) FROM ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+            sb.append(" WHERE ib_i_id = ");
+            sb.append(item_id);
+            sb.append(" AND ib_u_id = ");
+            sb.append(seller_id);
+            results = RestQuery.restReadQuery(sb.toString(), 0);
+            assert(!results.isEmpty());
+            newBidId = (long)results.get(0).get("ib_id") + 1;
             
             // Get the current max bid record for this item
-            stmt = this.getPreparedStatement(conn, getItemMaxBid, item_id, seller_id);
-            results = stmt.executeQuery();
-            advanceRow = results.next();
-            assert (advanceRow);
-            col = 1;
-            long currentBidId = results.getLong(col++);
-            double currentBidAmount = results.getDouble(col++);
-            double currentBidMax = results.getDouble(col++);
-            long currentBuyerId = results.getLong(col++);
-            results.close();
+            sb = new StringBuilder();
+            sb.append("SELECT imb_ib_id, ib_bid, ib_max_bid, ib_buyer_id FROM");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+            sb.append(", ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+            sb.append(" WHERE imb_i_id = ");
+            sb.append(item_id);
+            sb.append(" AND imb_u_id = ");
+            sb.append(seller_id);
+            sb.append(" AND imb_ib_id = ib_id AND imb_ib_i_id = ib_i_id AND imb_ib_u_id = ib_u_id ");
+            results = RestQuery.restReadQuery(sb.toString(), 0);
+            assert(!results.isEmpty());
+
+            long currentBidId = (long)results.get(0).get("imb_ib_id");
+            double currentBidAmount = (double)results.get(0).get("ib_bid");
+            double currentBidMax = (double)results.get(0).get("ib_max_bid");
+            long currentBuyerId = (long)results.get(0).get("ib_buyer_id");
             
             boolean updateMaxBid = false;
             assert((int)currentBidAmount == (int)i_current_price) :
@@ -209,12 +230,23 @@ public class NewBid extends Procedure {
                     if (debug) LOG.debug(msg);
                     throw new UserAbortException(msg);
                 }
-                this.getPreparedStatement(conn, updateBid, i_current_price,
-                                                           newBid,
-                                                           currentTime,
-                                                           currentBidId,
-                                                           item_id,
-                                                           seller_id).executeUpdate();
+                sb = new StringBuilder();
+                sb.append("UPDATE ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+                sb.append(" SET ib_bid = ");
+                sb.append(i_current_price);
+                sb.append(", ib_max_bid = ");
+                sb.append(newBid);
+                sb.append(", ib_updated = ");
+                sb.append(currentTime);
+                sb.append(" WHERE ib_id = ");
+                sb.append(currentBidId);
+                sb.append(" AND ib_i_id = ");
+                sb.append(item_id);
+                sb.append(" AND ib_u_id = ");
+                sb.append(seller_id);
+                RestQuery.restOtherQuery(sb.toString(), 0);
+
                 if (debug) LOG.debug(String.format("Increasing the max bid the highest bidder %s from %.2f to %.2f for Item %d",
                                                    buyer_id, currentBidMax, newBid, item_id));
             }
@@ -237,12 +269,24 @@ public class NewBid extends Procedure {
                     newBidMaxBuyerId = currentBuyerId;
                     i_current_price = Math.min(currentBidMax, newBid + (i_initial_price * AuctionMarkConstants.ITEM_BID_PERCENT_STEP));
                     assert(i_current_price >= newBid) : String.format("%.2f > %.2f", i_current_price, newBid);
-                    this.getPreparedStatement(conn, updateBid, i_current_price,
-                                                               i_current_price,
-                                                               currentTime,
-                                                               currentBidId,
-                                                               item_id,
-                                                               seller_id).executeUpdate();
+
+                    sb = new StringBuilder();
+                    sb.append("UPDATE ");
+                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+                    sb.append(" SET ib_bid = ");
+                    sb.append(i_current_price);
+                    sb.append(", ib_max_bid = ");
+                    sb.append(i_current_price);
+                    sb.append(", ib_updated = ");
+                    sb.append(currentTime);
+                    sb.append(" WHERE ib_id = ");
+                    sb.append(currentBidId);
+                    sb.append(" AND ib_i_id = ");
+                    sb.append(item_id);
+                    sb.append(" AND ib_u_id = ");
+                    sb.append(seller_id);
+                    RestQuery.restOtherQuery(sb.toString(), 0);
+
                     if (debug) LOG.debug(String.format("Keeping the existing highest bidder of Item %d as %s but updating current price from %.2f to %.2f",
                                                        item_id, buyer_id, currentBidAmount, i_current_price));
                 }
@@ -251,28 +295,61 @@ public class NewBid extends Procedure {
                 // the new highest bidder. We also want to insert a new record even if
                 // the BuyerId already has ITEM_BID record, because we want to maintain
                 // the history of all the bid attempts
-                this.getPreparedStatement(conn, insertItemBid, newBidId,
-                                                               item_id,
-                                                               seller_id,
-                                                               buyer_id,
-                                                               i_current_price,
-                                                               newBid,
-                                                               currentTime,
-                                                               currentTime).executeUpdate();
-                this.getPreparedStatement(conn, updateItem, i_current_price,
-                                                            currentTime,
-                                                            item_id,
-                                                            seller_id).executeUpdate();
+                sb = new StringBuilder();
+                sb.append("INSERT INTO ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+                sb.append(" (ib_id, ib_i_id, ib_u_id, ib_buyer_id, ib_bid, ib_max_bid, ib_created, ib_updated) VALUES (");
+                sb.append(newBidId);
+                sb.append(", ");
+                sb.append(item_id);
+                sb.append(", ");
+                sb.append(seller_id);
+                sb.append(", ");
+                sb.append(buyer_id);
+                sb.append(", ");
+                sb.append(i_current_price);
+                sb.append(", ");
+                sb.append(newBid);
+                sb.append(", ");
+                sb.append(currentTime);
+                sb.append(", ");
+                sb.append(currentTime);
+                sb.append(")");
+                RestQuery.restOtherQuery(sb.toString(), 0);
+
+                sb = new StringBuilder();
+                sb.append("UPDATE ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+                sb.append(" SET i_num_bids = i_num_bids + 1, i_current_price = ");
+                sb.append(i_current_price);
+                sb.append(", i_updated = ");
+                sb.append(currentTime);
+                sb.append(" WHERE i_id = ");
+                sb.append(item_id);
+                sb.append(" AND i_u_id = ");
+                sb.append(seller_id);
+                RestQuery.restOtherQuery(sb.toString(), 0);
                 
                 // This has to be done after we insert the ITEM_BID record to make sure
                 // that the HSQLDB test cases work
                 if (updateMaxBid) {
-                    this.getPreparedStatement(conn, updateItemMaxBid, newBidId,
-                                                                      item_id,
-                                                                      seller_id,
-                                                                      currentTime,
-                                                                      item_id,
-                                                                      seller_id).executeUpdate();
+                    sb = new StringBuilder();
+                    sb.append("UPDATE ");
+                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+                    sb.append(" SET imb_ib_id = ");
+                    sb.append(newBidId);
+                    sb.append(", imb_ib_i_id = ");
+                    sb.append(item_id);
+                    sb.append(", imb_ib_u_id = ");
+                    sb.append(seller_id);
+                    sb.append(", imb_updated = ");
+                    sb.append(currentTime);
+                    sb.append(" WHERE imb_i_id = ");
+                    sb.append(item_id);
+                    sb.append(" AND imb_u_id = ");
+                    sb.append(seller_id);
+                    RestQuery.restOtherQuery(sb.toString(), 0);
+
                     if (debug) LOG.debug(String.format("Changing new highest bidder of Item %d to %s [newMaxBid=%.2f > currentMaxBid=%.2f]",
                                          item_id, UserId.toString(buyer_id), newBid, currentBidMax));
                 }
@@ -280,25 +357,61 @@ public class NewBid extends Procedure {
         }
         // There is no existing max bid record, therefore we can just insert ourselves
         else {
-            this.getPreparedStatement(conn, insertItemBid, newBidId,
-                                                           item_id,
-                                                           seller_id,
-                                                           buyer_id,
-                                                           i_initial_price,
-                                                           newBid,
-                                                           currentTime,
-                                                           currentTime).executeUpdate();
-            this.getPreparedStatement(conn, insertItemMaxBid, item_id,
-                                                              seller_id,
-                                                              newBidId,
-                                                              item_id,
-                                                              seller_id,
-                                                              currentTime,
-                                                              currentTime).executeUpdate();
-            this.getPreparedStatement(conn, updateItem, i_current_price,
-                                                        currentTime,
-                                                        item_id,
-                                                        seller_id).execute();
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+            sb.append(" (ib_id, ib_i_id, ib_u_id, ib_buyer_id, ib_bid, ib_max_bid, ib_created, ib_updated) VALUES (");
+            sb.append(newBidId);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(buyer_id);
+            sb.append(", ");
+            sb.append(i_initial_price);
+            sb.append(", ");
+            sb.append(newBid);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(")");
+            RestQuery.restOtherQuery(sb.toString(), 0);
+            
+            sb = new StringBuilder();
+            sb.append("INSERT INTO ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+            sb.append(" (imb_i_id, imb_u_id, imb_ib_id, imb_ib_i_id, imb_ib_u_id, imb_created, imb_updated) VALUES (");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(newBidId);
+            sb.append(", ");
+            sb.append(item_id);
+            sb.append(", ");
+            sb.append(seller_id);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(", ");
+            sb.append(currentTime);
+            sb.append(")");
+            RestQuery.restOtherQuery(sb.toString(), 0);
+
+            sb = new StringBuilder();
+            sb.append("UPDATE ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+            sb.append(" SET i_num_bids = i_num_bids + 1, i_current_price = ");
+            sb.append(i_current_price);
+            sb.append(", i_updated = ");
+            sb.append(currentTime);
+            sb.append(" WHERE i_id = ");
+            sb.append(item_id);
+            sb.append(" AND i_u_id = ");
+            sb.append(seller_id);
+            RestQuery.restOtherQuery(sb.toString(), 0);
+
             if (debug) LOG.debug(String.format("Creating the first bid record for Item %d and setting %s as highest bidder at %.2f",
                                                item_id, buyer_id, i_current_price));
         }
