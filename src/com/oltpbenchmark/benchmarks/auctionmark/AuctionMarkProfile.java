@@ -363,11 +363,12 @@ public class AuctionMarkProfile {
                 // Then invoke LoadConfig to pull down the profile information we need
                 if (LOG.isDebugEnabled())
                     LOG.debug("Loading AuctionMarkProfile for the first time");
-                ResultSet results[] = worker.getProcedure(LoadConfig.class).run(conn);
+
+                List<List<Map<String,Object>>> resultSets = worker.getProcedure(LoadConfig.class).run(conn);
                 int result_idx = 0;
                 
                 // CONFIG_PROFILE
-                loadConfigProfile(cachedProfile, results[result_idx++]);
+                loadConfigProfile(cachedProfile, resultSets.get(result_idx++));
                 
                 // IMPORTANT: We need to set these timestamps here. It must be done
                 // after we have loaded benchmarkStartTime
@@ -375,25 +376,21 @@ public class AuctionMarkProfile {
                 cachedProfile.updateAndGetCurrentTime();
     
                 // ITEM CATEGORY COUNTS
-                loadItemCategoryCounts(cachedProfile, results[result_idx++]);
+                loadItemCategoryCounts(cachedProfile, resultSets.get(result_idx++));
                 
                 // GLOBAL_ATTRIBUTE_GROUPS
-                loadGlobalAttributeGroups(cachedProfile, results[result_idx++]);
+                loadGlobalAttributeGroups(cachedProfile, resultSets.get(result_idx++));
                 
                 // PENDING COMMENTS
-                loadPendingItemComments(cachedProfile, results[result_idx++]);
+                loadPendingItemComments(cachedProfile, resultSets.get(result_idx++));
                 
                 // ITEMS
-                while (result_idx < results.length) {
+                while (result_idx < resultSets.size()) {
     //                assert(results[result_idx].isClosed() == false) :
     //                    "Unexpected closed ITEM ResultSet [idx=" + result_idx + "]";
-                    loadItems(cachedProfile, results[result_idx]);
+                    loadItems(cachedProfile, resultSets.get(result_idx));
                     result_idx++;
                 } // FOR
-                
-                for (ResultSet r : results) r.close();
-
-                conn.commit();
                 
                 if (LOG.isDebugEnabled())
                     LOG.debug("Loaded profile:\n" + cachedProfile.toString());
@@ -413,62 +410,51 @@ public class AuctionMarkProfile {
                                                    (clientId < 0 ? null : clientId));
     }
     
-    private static final void loadConfigProfile(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
-        boolean adv = vt.next();
-        assert(adv) : 
-            String.format("Failed to get data from %s\n%s",
-                          AuctionMarkConstants.TABLENAME_CONFIG_PROFILE, vt);
-        int col = 1;
-        profile.scale_factor = vt.getDouble(col++);
-        profile.loaderStartTime = vt.getTimestamp(col++);
-        profile.loaderStopTime = vt.getTimestamp(col++);
-        JSONUtil.fromJSONString(profile.users_per_itemCount, vt.getString(col++));
+    private static final void loadConfigProfile(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
+
+        
+        Map<String,Object> row = resultSet.get( 0 );
+        profile.scale_factor = (Double) row.get( "cfp_scale_factor" );
+        profile.loaderStartTime = new Timestamp( (Integer) row.get( "cfp_loader_start" ) );
+        profile.loaderStopTime = new Timestamp( (Integer) row.get( "cfp_loader_stop" ) );
+        JSONUtil.fromJSONString(profile.users_per_itemCount, (String) row.get( "cfp_user_item_histogram" ) );
         
         if (LOG.isDebugEnabled())
             LOG.debug(String.format("Loaded %s data", AuctionMarkConstants.TABLENAME_CONFIG_PROFILE));
     }
     
-    private static final void loadItemCategoryCounts(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
-        while (vt.next()) {
-            int col = 1;
-            long i_c_id = vt.getLong(col++);
-            int count = vt.getInt(col++);
+    private static final void loadItemCategoryCounts(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
+        for( Map<String,Object> row : resultSet ) {
+            long i_c_id = (Long) row.get( "i_c_id" );
+            int count = (Integer) row.get( "cnt" );
             profile.items_per_category.put((int)i_c_id, count);
-        } // WHILE
+        } // rows
         if (LOG.isDebugEnabled())
             LOG.debug(String.format("Loaded %d CATEGORY records from %s",
                                     profile.items_per_category.getValueCount(), AuctionMarkConstants.TABLENAME_ITEM));
     }
     
-    private static final void loadItems(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
-        int ctr = 0;
-	LOG.info( "Loading items and adding them to proper queue." );
-        while (vt.next()) {
-            int col = 1;
-            ItemId i_id = new ItemId(vt.getLong(col++));
-            double i_current_price = vt.getDouble(col++);
-            Timestamp i_end_date = vt.getTimestamp(col++);
-            int i_num_bids = (int)vt.getLong(col++);
+    private static final void loadItems(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
+        LOG.info( "Loading items and adding them to proper queue." );
+        for( Map<String, Object> row : resultSet ) {
+            ItemId i_id = new ItemId( (Long) row.get( "i_id" ) );
+            double i_current_price = (Double) row.get( "current_price" );
+            Timestamp i_end_date = new Timestamp( (Long) row.get( "i_end_date" ) );
+            int i_num_bids = (Integer) row.get( "i_num_bids" );
             
             // IMPORTANT: Do not set the status here so that we make sure that
             // it is added to the right queue
-	    // XXX At this point, all of these items are considered OPEN
+            // XXX At this point, all of these items are considered OPEN
             ItemInfo itemInfo = new ItemInfo(i_id, i_current_price, i_end_date, i_num_bids);
             profile.addItemToProperQueue(itemInfo, false);
-            ctr++;
         } // WHILE
-        
-        if (LOG.isDebugEnabled())
-            LOG.debug(String.format("Loaded %d records from %s",
-                                    ctr, AuctionMarkConstants.TABLENAME_ITEM));
     }
     
-    private static final void loadPendingItemComments(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
-        while (vt.next()) {
-            int col = 1;
-            long ic_id = vt.getLong(col++);
-            long ic_i_id = vt.getLong(col++);
-            long ic_u_id = vt.getLong(col++);
+    private static final void loadPendingItemComments(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
+        for( Map<String, Object> row : resultSet ) {
+            long ic_id = (Long) row.get( "ic_id" );
+            long ic_i_id = (Long) row.get( "ic_i_id" );
+            long ic_u_id = (Long) row.get( "ic_u_id" );
             ItemCommentResponse cr = new ItemCommentResponse(ic_id, ic_i_id, ic_u_id);
             profile.pending_commentResponses.add(cr);
         } // WHILE
@@ -477,10 +463,9 @@ public class AuctionMarkProfile {
                                     profile.pending_commentResponses.size(), AuctionMarkConstants.TABLENAME_ITEM_COMMENT));
     }
     
-    private static final void loadGlobalAttributeGroups(AuctionMarkProfile profile, ResultSet vt) throws SQLException {
-        while (vt.next()) {
-            int col = 1;
-            long gag_id = vt.getLong(col++);
+    private static final void loadGlobalAttributeGroups(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
+        for( Map<String, Object> row : resultSet ) {
+            long gag_id = (Long) row.get( "gag_id" );
             profile.gag_ids.add(new GlobalAttributeGroupId(gag_id));
         } // WHILE
         if (LOG.isDebugEnabled())

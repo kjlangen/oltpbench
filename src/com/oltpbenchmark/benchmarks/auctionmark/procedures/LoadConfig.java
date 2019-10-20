@@ -21,7 +21,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -29,6 +32,8 @@ import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
+
+import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
 
 public class LoadConfig extends Procedure {
 
@@ -81,27 +86,54 @@ public class LoadConfig extends Procedure {
     // RUN
     // -----------------------------------------------------------------
     
-    public ResultSet[] run(Connection conn) throws SQLException {
-        PreparedStatement stmt = null;
+    public List<List<Map<String,Object>>> run(Connection conn) throws SQLException {
 
-        List<ResultSet> results = new ArrayList<ResultSet>();
-        results.add(this.getPreparedStatement(conn, getConfigProfile).executeQuery());
-        results.add(this.getPreparedStatement(conn, getCategoryCounts).executeQuery());
-        results.add(this.getPreparedStatement(conn, getAttributes).executeQuery());
-        results.add(this.getPreparedStatement(conn, getPendingComments).executeQuery());
+        List<List<Map<String,Object>>> resultSets = new LinkedList<>();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append( "SELECT cfp_scale_factor, cfp_loader_start, cfp_loader_stop, ");
+        sb.append( "cfp_user_item_histogram FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
+
+        List<Map<String,Object>> resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT i_c_id, COUNT(i_id) as cnt FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM );
+        sb.append( " GROUP BY i_c_id" );
+
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT gag_id FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_GLOBAL_ATTRIBUTE_GROUP );
+
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
+
+        sb = new StringBuilder();
+        sb.append( "SELECT ic_id, ic_i_id, ic_u_id, ic_buyer_id FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM_COMMENT );
+        sb.append( " WHERE ic_response IS NULL" );
+
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
 
         // This gives us three result sets
         // OPEN (aka future results)
         // WAITING_FOR_PURCHASE
         // CLOSED
-        //
-        StringBuffer sb = new StringBuffer();
+
+        sb = new StringBuilder();
         sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
         sb.append( "FROM " );
         sb.append( AuctionMarkConstants.TABLENAME_ITEM );
         sb.append( ", " );
         sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
-        sb.append( " WHERE i_status = ?" );
+        sb.append( " WHERE i_status = " );
+        sb.append( ItemStatus.OPEN.ordinal() );
         sb.append( " AND i_end_date > cfp_loader_start AND " );
         sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
         sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
@@ -110,23 +142,24 @@ public class LoadConfig extends Procedure {
         sb.append( " LIMIT " );
         sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
 
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
+        
         LOG.info( sb.toString() );
-        stmt = conn.prepareStatement(sb.toString());
-        stmt.setLong( 1, ItemStatus.OPEN.ordinal() );
-        results.add(stmt.executeQuery());
 
         // Here's some BS
         // We know that stuff in here will either end up in the WAITING_FOR_PURCHASE OR CLOSED
         // queues. But we should only end up in the WAITING_FOR_PURCHASE QUEUE IF we don't already have
         // a purchase record.
 
-        sb = new StringBuffer();
+        sb = new StringBuilder();
         sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
         sb.append( "FROM " );
         sb.append( AuctionMarkConstants.TABLENAME_ITEM );
         sb.append( ", " );
         sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
-        sb.append( " WHERE i_status = ?" );
+        sb.append( " WHERE i_status = " );
+        sb.append( ItemStatus.WAITING_FOR_PURCHASE.ordinal() );
         sb.append( " AND i_end_date <= cfp_loader_start AND " );
         sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
         sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
@@ -136,15 +169,29 @@ public class LoadConfig extends Procedure {
         sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
 
         LOG.info( sb.toString() );
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
 
-        stmt = conn.prepareStatement(sb.toString());
-        stmt.setLong( 1, ItemStatus.WAITING_FOR_PURCHASE.ordinal() );
-        results.add(stmt.executeQuery());
+        sb = new StringBuilder();
+        sb.append( "SELECT i_id, i_current_price, i_end_date, i_num_bids, i_status " );
+        sb.append( "FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM );
+        sb.append( ", " );
+        sb.append( AuctionMarkConstants.TABLENAME_CONFIG_PROFILE );
+        sb.append( " WHERE i_status = " );
+        sb.append( ItemStatus.CLOSED.ordinal() );
+        sb.append( " AND i_end_date <= cfp_loader_start AND " );
+        sb.append( " (i_num_bids = 0 OR NOT EXISTS( SELECT ip_id FROM " );
+        sb.append( AuctionMarkConstants.TABLENAME_ITEM_PURCHASE );
+        sb.append( " WHERE ip_id = i_id )) " );
+        sb.append( "ORDER BY i_end_date ASC");
+        sb.append( " LIMIT " );
+        sb.append( AuctionMarkConstants.ITEM_LOADCONFIG_LIMIT );
 
-        stmt = conn.prepareStatement(sb.toString() );
-        stmt.setLong( 1, ItemStatus.CLOSED.ordinal() );
-        results.add(stmt.executeQuery());
+        LOG.info( sb.toString() );
+        resultSet = RestQuery.restReadQuery( sb.toString(), 0 );
+        resultSets.add( resultSet );
 
-        return (results.toArray(new ResultSet[0]));
+        return resultSets;
     }
 }
