@@ -90,9 +90,9 @@ public class UpdateItem extends Procedure {
         sb.append(AuctionMarkConstants.TABLENAME_ITEM);
         sb.append(" SET i_description = ");
         sb.append(RestQuery.quoteAndSanitize(description));
-        sb.append(", i_updated = ");
+        sb.append(", i_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE i_id = ");
+        sb.append("' WHERE i_id = ");
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
@@ -125,7 +125,7 @@ public class UpdateItem extends Procedure {
             long ia_id = -1;
             
             sb = new StringBuilder();
-            sb.append("SELECT MAX(ia_id) FROM ");
+            sb.append("SELECT MAX(ia_id) AS m_ia_id FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM_ATTRIBUTE);
             sb.append(" WHERE ia_i_id = ");
             sb.append(item_id);
@@ -133,7 +133,7 @@ public class UpdateItem extends Procedure {
             sb.append(seller_id);
             List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
             if (!results.isEmpty()) {
-                ia_id = (long)results.get(0).get("ia_id");
+                ia_id = (long)results.get(0).get("m_ia_id");
             } else {
                 ia_id = AuctionMarkUtil.getUniqueElementId(item_id, 0);
             }
