@@ -184,7 +184,7 @@ public class NewItem extends Procedure {
         long updated = -1;
         
         // ATTRIBUTES
-        description += "\nATTRIBUTES: ";
+        description += ";ATTRIBUTES: ";
         for (int i = 0; i < gag_ids.length; i++) {
             sb = new StringBuilder();
             sb.append("SELECT gag_name, gav_name, gag_c_id FROM ");
@@ -198,7 +198,7 @@ public class NewItem extends Procedure {
             sb.append(" AND gav_gag_id = gag_id");
             results = RestQuery.restReadQuery(sb.toString(), 0);
             if (!results.isEmpty()) {
-                description += String.format(" * %s -> %s\n", results.get(0).get("gag_name"), results.get(0).get("gav_name"));
+                description += String.format(" %s - %s,", results.get(0).get("gag_name"), results.get(0).get("gav_name"));
             }
         }
         
@@ -225,7 +225,7 @@ public class NewItem extends Procedure {
         } else {
             category_parent = "<ROOT>";
         }
-        description += String.format("\nCATEGORY: %s >> %s", category_parent, category_name);
+        description += String.format("CATEGORY: %s >> %s", category_parent, category_name);
 
         // Insert new ITEM tuple
         sb = new StringBuilder();
@@ -239,13 +239,13 @@ public class NewItem extends Procedure {
         sb.append(seller_id);
         sb.append(", ");
         sb.append(category_id);
-        sb.append(", ");
+        sb.append(", '");
         sb.append(name);
-        sb.append(", ");
+        sb.append("', '");
         sb.append(description);
-        sb.append(", ");
+        sb.append("', '");
         sb.append(attributes);
-        sb.append(", ");
+        sb.append("', ");
         sb.append(initial_price);
         sb.append(", ");
         sb.append(initial_price);
@@ -255,17 +255,17 @@ public class NewItem extends Procedure {
         sb.append(images.length);
         sb.append(", ");
         sb.append(gav_ids.length);
-        sb.append(", 0, ");
+        sb.append(", 0, '");
         sb.append(currentTime);
-        sb.append(", ");
+        sb.append("', '");
         sb.append(end_date);
-        sb.append(", ");
+        sb.append("', ");
         sb.append(ItemStatus.OPEN.ordinal());
-        sb.append(", ");
+        sb.append(", '");
         sb.append(currentTime);
-        sb.append(", ");
+        sb.append("', '");
         sb.append(currentTime);
-        sb.append(", 1)");
+        sb.append("', 1)");
 
         // NOTE: This may fail with a duplicate entry exception because 
         // the client's internal count of the number of items that this seller 
@@ -330,9 +330,9 @@ public class NewItem extends Procedure {
             sb.append(item_id);
             sb.append(", ");
             sb.append(seller_id);
-            sb.append(", ");
+            sb.append(", '");
             sb.append(images[i]);
-            sb.append(")");
+            sb.append("')");
             updated = RestQuery.restOtherQuery(sb.toString(), 0);
             assert(updated == 1);
         }
@@ -341,9 +341,9 @@ public class NewItem extends Procedure {
         sb = new StringBuilder();
         sb.append("UPDATE ");
         sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
-        sb.append(" SET u_balance = u_balance - 1, u_updated = ");
+        sb.append(" SET u_balance = u_balance - 1, u_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE u_id = ");
+        sb.append("' WHERE u_id = ");
         sb.append(seller_id);
         updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1);
@@ -361,7 +361,7 @@ public class NewItem extends Procedure {
             // NUM BIDS
             0l,
             // END DATE
-            end_date,
+            end_date.getTime(),
             // STATUS
             ItemStatus.OPEN.ordinal()
         };

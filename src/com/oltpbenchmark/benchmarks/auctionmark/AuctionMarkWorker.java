@@ -433,10 +433,11 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         double i_current_price = (Double) row[col++]; // i_current_price
 	long i_num_bids;
 	if( row[col] instanceof Integer ) {
-        	i_num_bids = new Long( (Integer) row[col++] );          // i_num_bids
+        	i_num_bids = new Long( (Integer) row[col] );          // i_num_bids
 	} else {
-        	i_num_bids = (Long) row[col++];          // i_num_bids
+        	i_num_bids = (Long) row[col];          // i_num_bids
 	}
+	col++;
         Timestamp i_end_date = new Timestamp( (Long) row[col++] );// i_end_date
         if (i_end_date == null) throw new RuntimeException("DJELLEL IS THE MAN! --> " + row[col-1] + " / " + row[col-1].getClass());
         
