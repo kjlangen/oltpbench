@@ -123,9 +123,9 @@ public class GetUserInfo extends Procedure {
                                 boolean get_watched_items) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         
-        Map<Long, List<Map<String, Object>>> results = new HashMap<>();
-        Map<Long, String> select_lists = new HashMap<>();
-        long result_idx = 0;
+        Map<Integer, List<Map<String, Object>>> results = new HashMap<>();
+        Map<Integer, String> select_lists = new HashMap<>();
+        int result_idx = 0;
         
         // The first VoltTable in the output will always be the user's information
         if (debug) LOG.debug("Grabbing USER record: " + user_id);
@@ -231,7 +231,7 @@ public class GetUserInfo extends Procedure {
             sb = new StringBuilder();
             sb.append("SELECT ");
             sb.append(select_lists.get(result_idx));
-            sb.append(" FROM");
+            sb.append(" FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_USERACCT_WATCH);
             sb.append(", ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM);
@@ -243,8 +243,8 @@ public class GetUserInfo extends Procedure {
         result_idx++;
 
         @SuppressWarnings("unchecked")
-        List<Object[]> final_results[] = new List[results.size()];
-        for (int i = 0; i < result_idx; i++) {
+        List<Object[]> final_results[] = new List[(int) result_idx];
+        for(int i = 0; i < result_idx; i++) {
             // The rows of the ith result
             List<Object[]> inner = null;
 

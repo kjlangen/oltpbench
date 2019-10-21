@@ -25,6 +25,8 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.auctionmark.AuctionMarkConstants;
@@ -36,6 +38,8 @@ import com.oltpbenchmark.benchmarks.auctionmark.util.RestQuery;
  * @author pavlo
  */
 public class GetItem extends Procedure {
+
+    private static final Logger LOG = Logger.getLogger( GetItem.class );
 
     // -----------------------------------------------------------------
     // STATEMENTS
@@ -59,7 +63,7 @@ public class GetItem extends Procedure {
     // -----------------------------------------------------------------
     
     public Object[][] run(Connection conn, Timestamp benchmarkTimes[],
-                          long item_id, long seller_id) throws SQLException {
+                          long item_id, long seller_id, int clientId) throws SQLException {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT ");
         sb.append(AuctionMarkConstants.ITEM_COLUMNS_STR);

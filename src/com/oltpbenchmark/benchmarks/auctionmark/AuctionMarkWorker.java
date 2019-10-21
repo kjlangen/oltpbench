@@ -421,15 +421,21 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
     @SuppressWarnings("unused")
     public ItemId processItemRecord(Object row[]) {
         int col = 0;
-        ItemId i_id = new ItemId(SQLUtil.getLong(row[col++]));  // i_id
-        long i_u_id = SQLUtil.getLong(row[col++]);              // i_u_id
+        ItemId i_id = new ItemId( (Long) row[col++] );  // i_id
+	long i_u_id;
+	if( row[col] instanceof Integer ) {
+		i_u_id = new Long( (Integer) row[col] );              // i_u_id
+	} else {
+		i_u_id = (Long) row[col];              // i_u_id
+	}
+	col++;
         String i_name = (String)row[col++];                     // i_name
-        double i_current_price = SQLUtil.getDouble(row[col++]); // i_current_price
-        long i_num_bids = SQLUtil.getLong(row[col++]);          // i_num_bids
-        Timestamp i_end_date = SQLUtil.getTimestamp(row[col++]);// i_end_date
+        double i_current_price = (Double) row[col++]; // i_current_price
+        long i_num_bids = new Long( (Integer) row[col++] );          // i_num_bids
+        Timestamp i_end_date = new Timestamp( (Long) row[col++] );// i_end_date
         if (i_end_date == null) throw new RuntimeException("DJELLEL IS THE MAN! --> " + row[col-1] + " / " + row[col-1].getClass());
         
-        Integer temp = SQLUtil.getInteger(row[col++]);
+        Integer temp = (Integer) row[col++];
         if (temp == null) throw new RuntimeException("DJELLEL IS STILL THE MAN! --> " + row[col-1] + " / " + row[col-1].getClass());
         ItemStatus i_status = ItemStatus.get(temp); // i_status
         
@@ -484,7 +490,7 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         ItemInfo itemInfo = profile.getRandomAvailableItemId();
         
         Object results[][] = proc.run(conn, benchmarkTimes, itemInfo.itemId.encode(),
-                                                            itemInfo.getSellerId().encode());
+                                                            itemInfo.getSellerId().encode(), this.getId());
         conn.commit();
         
         // The first row will have our item data that we want
@@ -533,6 +539,7 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         conn.commit();
         
         List<Object[]> vt = null;
+	LOG.info( "Rows: " + results );
         int idx = 0;
       
         // USER

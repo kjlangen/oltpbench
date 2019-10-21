@@ -356,9 +356,6 @@ public class AuctionMarkProfile {
                 // Otherwise we have to go fetch everything again
                 // So first we want to reset the database
                 Connection conn = worker.getConnection();
-                LOG.warn("Reseting database from last execution run");
-                worker.getProcedure(ResetDatabase.class).run(conn);
-                LOG.warn("Done Reseting database from last execution run");
                 
                 // Then invoke LoadConfig to pull down the profile information we need
                 if (LOG.isDebugEnabled())
@@ -415,8 +412,8 @@ public class AuctionMarkProfile {
         
         Map<String,Object> row = resultSet.get( 0 );
         profile.scale_factor = (Double) row.get( "cfp_scale_factor" );
-        profile.loaderStartTime = new Timestamp( (Integer) row.get( "cfp_loader_start" ) );
-        profile.loaderStopTime = new Timestamp( (Integer) row.get( "cfp_loader_stop" ) );
+        profile.loaderStartTime = new Timestamp( (Long) row.get( "cfp_loader_start" ) );
+        profile.loaderStopTime = new Timestamp( (Long) row.get( "cfp_loader_stop" ) );
         JSONUtil.fromJSONString(profile.users_per_itemCount, (String) row.get( "cfp_user_item_histogram" ) );
         
         if (LOG.isDebugEnabled())
@@ -425,7 +422,7 @@ public class AuctionMarkProfile {
     
     private static final void loadItemCategoryCounts(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
         for( Map<String,Object> row : resultSet ) {
-            long i_c_id = (Long) row.get( "i_c_id" );
+            long i_c_id = new Long( (Integer) row.get( "i_c_id" ) );
             int count = (Integer) row.get( "cnt" );
             profile.items_per_category.put((int)i_c_id, count);
         } // rows
@@ -438,7 +435,7 @@ public class AuctionMarkProfile {
         LOG.info( "Loading items and adding them to proper queue." );
         for( Map<String, Object> row : resultSet ) {
             ItemId i_id = new ItemId( (Long) row.get( "i_id" ) );
-            double i_current_price = (Double) row.get( "current_price" );
+            double i_current_price = (Double) row.get( "i_current_price" );
             Timestamp i_end_date = new Timestamp( (Long) row.get( "i_end_date" ) );
             int i_num_bids = (Integer) row.get( "i_num_bids" );
             
@@ -465,7 +462,7 @@ public class AuctionMarkProfile {
     
     private static final void loadGlobalAttributeGroups(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
         for( Map<String, Object> row : resultSet ) {
-            long gag_id = (Long) row.get( "gag_id" );
+            long gag_id = new Long( (Integer) row.get( "gag_id" ) );
             profile.gag_ids.add(new GlobalAttributeGroupId(gag_id));
         } // WHILE
         if (LOG.isDebugEnabled())
