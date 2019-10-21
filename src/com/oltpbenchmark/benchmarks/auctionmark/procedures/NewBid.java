@@ -166,9 +166,15 @@ public class NewBid extends Procedure {
         }
         double i_initial_price = (double)results.get(0).get("i_initial_price");
         double i_current_price = (double)results.get(0).get("i_current_price");
-        long i_num_bids = (long)results.get(0).get("i_num_bids");
-        Timestamp i_end_date = (Timestamp)results.get(0).get("i_end_date");
-        ItemStatus i_status = ItemStatus.get((long)results.get(0).get("i_status"));
+
+        long i_num_bids;
+	if( results.get(0).get("i_num_bids") instanceof Long ) {
+       		i_num_bids = (long)results.get(0).get("i_num_bids");
+	} else {
+		i_num_bids = new Long( (Integer) results.get(0).get("i_num_bids") );
+	}
+        Long i_end_date = (Long) results.get(0).get("i_end_date");
+        ItemStatus i_status = ItemStatus.get((Integer)results.get(0).get("i_status"));
         long newBidId = 0;
         long newBidMaxBuyerId = buyer_id;
         
@@ -186,7 +192,7 @@ public class NewBid extends Procedure {
             if (debug) LOG.debug("Retrieving ITEM_MAX_BID information for " + ItemId.toString(item_id));
 
             sb = new StringBuilder();
-            sb.append("SELECT MAX(ib_id) FROM ");
+            sb.append("SELECT MAX(ib_id) as m_id FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
             sb.append(" WHERE ib_i_id = ");
             sb.append(item_id);
@@ -194,11 +200,15 @@ public class NewBid extends Procedure {
             sb.append(seller_id);
             results = RestQuery.restReadQuery(sb.toString(), 0);
             assert(!results.isEmpty());
-            newBidId = (long)results.get(0).get("ib_id") + 1;
+	    if( results.get(0).get("m_id") instanceof Long ) {
+		    newBidId = (Long) results.get(0).get("m_id") + 1;
+	    } else {
+		    newBidId = new Long((Integer) results.get(0).get("m_id")) + 1;
+	    }
             
             // Get the current max bid record for this item
             sb = new StringBuilder();
-            sb.append("SELECT imb_ib_id, ib_bid, ib_max_bid, ib_buyer_id FROM");
+            sb.append("SELECT imb_ib_id, ib_bid, ib_max_bid, ib_buyer_id FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
             sb.append(", ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
@@ -210,10 +220,22 @@ public class NewBid extends Procedure {
             results = RestQuery.restReadQuery(sb.toString(), 0);
             assert(!results.isEmpty());
 
-            long currentBidId = (long)results.get(0).get("imb_ib_id");
+	    long currentBidId;
+	    if( results.get(0).get("imb_ib_id") instanceof Long ) {
+            	currentBidId = (Long)results.get(0).get("imb_ib_id");
+	    } else {
+            	currentBidId = new Long( (Integer)results.get(0).get("imb_ib_id") );
+	    }
+
             double currentBidAmount = (double)results.get(0).get("ib_bid");
             double currentBidMax = (double)results.get(0).get("ib_max_bid");
-            long currentBuyerId = (long)results.get(0).get("ib_buyer_id");
+
+            long currentBuyerId;
+	    if( results.get(0).get("ib_buyer_id") instanceof Long ) {
+		currentBuyerId = (Long) results.get(0).get("ib_buyer_id");
+	    } else {
+		currentBuyerId = new Long( (Integer) results.get(0).get("ib_buyer_id") );
+	    }
             
             boolean updateMaxBid = false;
             assert((int)currentBidAmount == (int)i_current_price) :
@@ -237,9 +259,9 @@ public class NewBid extends Procedure {
                 sb.append(i_current_price);
                 sb.append(", ib_max_bid = ");
                 sb.append(newBid);
-                sb.append(", ib_updated = ");
+                sb.append(", ib_updated = '");
                 sb.append(currentTime);
-                sb.append(" WHERE ib_id = ");
+                sb.append("' WHERE ib_id = ");
                 sb.append(currentBidId);
                 sb.append(" AND ib_i_id = ");
                 sb.append(item_id);
@@ -277,9 +299,9 @@ public class NewBid extends Procedure {
                     sb.append(i_current_price);
                     sb.append(", ib_max_bid = ");
                     sb.append(i_current_price);
-                    sb.append(", ib_updated = ");
+                    sb.append(", ib_updated = '");
                     sb.append(currentTime);
-                    sb.append(" WHERE ib_id = ");
+                    sb.append("' WHERE ib_id = ");
                     sb.append(currentBidId);
                     sb.append(" AND ib_i_id = ");
                     sb.append(item_id);
@@ -310,11 +332,11 @@ public class NewBid extends Procedure {
                 sb.append(i_current_price);
                 sb.append(", ");
                 sb.append(newBid);
-                sb.append(", ");
+                sb.append(", '");
                 sb.append(currentTime);
-                sb.append(", ");
+                sb.append("', '");
                 sb.append(currentTime);
-                sb.append(")");
+                sb.append("')");
                 RestQuery.restOtherQuery(sb.toString(), 0);
 
                 sb = new StringBuilder();
@@ -322,9 +344,9 @@ public class NewBid extends Procedure {
                 sb.append(AuctionMarkConstants.TABLENAME_ITEM);
                 sb.append(" SET i_num_bids = i_num_bids + 1, i_current_price = ");
                 sb.append(i_current_price);
-                sb.append(", i_updated = ");
+                sb.append(", i_updated = '");
                 sb.append(currentTime);
-                sb.append(" WHERE i_id = ");
+                sb.append("' WHERE i_id = ");
                 sb.append(item_id);
                 sb.append(" AND i_u_id = ");
                 sb.append(seller_id);
@@ -342,9 +364,9 @@ public class NewBid extends Procedure {
                     sb.append(item_id);
                     sb.append(", imb_ib_u_id = ");
                     sb.append(seller_id);
-                    sb.append(", imb_updated = ");
+                    sb.append(", imb_updated = '");
                     sb.append(currentTime);
-                    sb.append(" WHERE imb_i_id = ");
+                    sb.append("' WHERE imb_i_id = ");
                     sb.append(item_id);
                     sb.append(" AND imb_u_id = ");
                     sb.append(seller_id);
@@ -372,11 +394,11 @@ public class NewBid extends Procedure {
             sb.append(i_initial_price);
             sb.append(", ");
             sb.append(newBid);
-            sb.append(", ");
+            sb.append(", '");
             sb.append(currentTime);
-            sb.append(", ");
+            sb.append("', '");
             sb.append(currentTime);
-            sb.append(")");
+            sb.append("')");
             RestQuery.restOtherQuery(sb.toString(), 0);
             
             sb = new StringBuilder();
@@ -392,11 +414,11 @@ public class NewBid extends Procedure {
             sb.append(item_id);
             sb.append(", ");
             sb.append(seller_id);
-            sb.append(", ");
+            sb.append(", '");
             sb.append(currentTime);
-            sb.append(", ");
+            sb.append("', '");
             sb.append(currentTime);
-            sb.append(")");
+            sb.append("')");
             RestQuery.restOtherQuery(sb.toString(), 0);
 
             sb = new StringBuilder();
@@ -404,9 +426,9 @@ public class NewBid extends Procedure {
             sb.append(AuctionMarkConstants.TABLENAME_ITEM);
             sb.append(" SET i_num_bids = i_num_bids + 1, i_current_price = ");
             sb.append(i_current_price);
-            sb.append(", i_updated = ");
+            sb.append(", i_updated = '");
             sb.append(currentTime);
-            sb.append(" WHERE i_id = ");
+            sb.append("' WHERE i_id = ");
             sb.append(item_id);
             sb.append(" AND i_u_id = ");
             sb.append(seller_id);
