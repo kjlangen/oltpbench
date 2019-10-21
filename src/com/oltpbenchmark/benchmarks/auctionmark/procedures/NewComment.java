@@ -92,7 +92,11 @@ public class NewComment extends Procedure {
         sb.append(seller_id);
         List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
         if (!results.isEmpty()) {
-            ic_id = (long)results.get(0).get("i_num_comments") + 1;
+	    if( results.get(0).get("i_num_comments") instanceof Long ) {
+		    ic_id = (Long)results.get(0).get("i_num_comments") + 1;
+	    } else {
+		    ic_id = (Integer)results.get(0).get("i_num_comments") + 1;
+	    }
         }
 
         sb = new StringBuilder();
@@ -109,11 +113,11 @@ public class NewComment extends Procedure {
         sb.append(buyer_id);
         sb.append(", ");
         sb.append(RestQuery.quoteAndSanitize(question));
-        sb.append(", ");
+        sb.append(", '");
         sb.append(currentTime);
-        sb.append(", ");
+        sb.append("', '");
         sb.append(currentTime);
-        sb.append(")");
+        sb.append("')");
         RestQuery.restOtherQuery(sb.toString(), 0);
 
         sb = new StringBuilder();
@@ -129,9 +133,9 @@ public class NewComment extends Procedure {
         sb = new StringBuilder();
         sb.append("UPDATE ");
         sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
-        sb.append(" SET u_comments = u_comments + 1, u_updated = ");
+        sb.append(" SET u_comments = u_comments + 1, u_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE u_id = ");
+        sb.append("' WHERE u_id = ");
         sb.append(seller_id);
         RestQuery.restOtherQuery(sb.toString(), 0);
 

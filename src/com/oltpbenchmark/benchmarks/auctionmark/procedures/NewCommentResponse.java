@@ -65,9 +65,9 @@ public class NewCommentResponse extends Procedure {
         sb.append(AuctionMarkConstants.TABLENAME_ITEM_COMMENT);
         sb.append(" SET ic_response = ");
         sb.append(RestQuery.quoteAndSanitize(response));
-        sb.append(", ic_updated = ");
+        sb.append(", ic_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE ic_id = ");
+        sb.append("' WHERE ic_id = ");
         sb.append(comment_id);
         sb.append(" AND ic_i_id = ");
         sb.append(item_id);
@@ -78,9 +78,9 @@ public class NewCommentResponse extends Procedure {
         sb = new StringBuilder();
         sb.append("UPDATE ");
         sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
-        sb.append(" SET u_comments = u_comments - 1, u_updated = ");
+        sb.append(" SET u_comments = u_comments - 1, u_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE u_id = ");
+        sb.append("' WHERE u_id = ");
         sb.append(seller_id);
         RestQuery.restOtherQuery(sb.toString(), 0);
 

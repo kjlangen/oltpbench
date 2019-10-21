@@ -449,9 +449,24 @@ public class AuctionMarkProfile {
     
     private static final void loadPendingItemComments(AuctionMarkProfile profile, List<Map<String,Object>> resultSet) throws SQLException {
         for( Map<String, Object> row : resultSet ) {
-            long ic_id = (Long) row.get( "ic_id" );
-            long ic_i_id = (Long) row.get( "ic_i_id" );
-            long ic_u_id = (Long) row.get( "ic_u_id" );
+            long ic_id;
+	    if( row.get( "ic_id" ) instanceof Long ) {
+		ic_id = (Long) row.get( "ic_id" );
+	    } else {
+		ic_id = new Long( (Integer) row.get( "ic_id" ) );
+	    }
+            long ic_i_id;
+	    if( row.get( "ic_i_id" ) instanceof Long ) {
+		    ic_i_id = (Long) row.get( "ic_i_id" ); 
+	    } else {
+		    ic_i_id = new Long( (Integer) row.get( "ic_i_id" ) ); 
+	    }
+            long ic_u_id;
+	    if( row.get( "ic_u_id" ) instanceof Long ) {
+		ic_u_id = (Long) row.get( "ic_u_id" ); 
+	    } else {
+		ic_u_id = new Long( (Integer) row.get( "ic_u_id" ) ); 
+	    }
             ItemCommentResponse cr = new ItemCommentResponse(ic_id, ic_i_id, ic_u_id);
             profile.pending_commentResponses.add(cr);
         } // WHILE
