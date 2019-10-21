@@ -187,7 +187,7 @@ public class NewItem extends Procedure {
         description += "\nATTRIBUTES: ";
         for (int i = 0; i < gag_ids.length; i++) {
             sb = new StringBuilder();
-            sb.append("SELECT gag_name, gav_name, gag_c_id FROM");
+            sb.append("SELECT gag_name, gav_name, gag_c_id FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_GLOBAL_ATTRIBUTE_GROUP);
             sb.append(", ");
             sb.append(AuctionMarkConstants.TABLENAME_GLOBAL_ATTRIBUTE_VALUE);

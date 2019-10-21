@@ -115,9 +115,9 @@ public class NewFeedback extends Procedure {
         sb.append(from_id);
         sb.append(", ");
         sb.append(rating);
-        sb.append(", ");
+        sb.append(", '");
         sb.append(currentTime);
-        sb.append(", ");
+        sb.append("', ");
         sb.append(RestQuery.quoteAndSanitize(comment));
         sb.append(")");
         long updated = RestQuery.restOtherQuery(sb.toString(), 0);
@@ -127,11 +127,11 @@ public class NewFeedback extends Procedure {
         sb = new StringBuilder();
         sb.append("UPDATE ");
         sb.append(AuctionMarkConstants.TABLENAME_USERACCT);
-        sb.append("SET u_rating = u_rating + ");
+        sb.append(" SET u_rating = u_rating + ");
         sb.append(rating);
-        sb.append(", u_updated = ");
+        sb.append(", u_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE u_id = ");
+        sb.append("' WHERE u_id = ");
         sb.append(user_id);
         updated = RestQuery.restOtherQuery(sb.toString(), 0);
         assert(updated == 1) :
