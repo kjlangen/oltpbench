@@ -231,12 +231,27 @@ public class NewPurchase extends Procedure {
             throw new UserAbortException("No ITEM_MAX_BID is available for item " + item_id);
         }
 
-        long i_num_bids = (long)results.get(0).get("i_num_bids");
+        long i_num_bids;
+        if( results.get(0).get("i_num_bids") instanceof Long ) {
+        	i_num_bids = (Long) results.get(0).get("i_num_bids");
+	} else {
+        	i_num_bids = new Long( (Integer) results.get(0).get("i_num_bids") );
+	}
         double i_current_price = (double)results.get(0).get("i_current_price");
-        Timestamp i_end_date = (Timestamp)results.get(0).get("i_end_date");
+        Timestamp i_end_date = new Timestamp( (Long) results.get(0).get("i_end_date") );
         ItemStatus i_status = ItemStatus.CLOSED;
-        long ib_id = (long)results.get(0).get("ib_id");
-        long ib_buyer_id = (long)results.get(0).get("ib_buyer_id");
+        long ib_id;
+       	if( results.get(0).get("ib_id") instanceof Long ) {
+		ib_id = (Long) results.get(0).get("ib_id");
+	} else {
+		ib_id = new Long( (Integer) results.get(0).get("ib_id") );
+	}
+        long ib_buyer_id;
+        if( results.get(0).get("ib_buyer_id") instanceof Long ) {
+		ib_buyer_id = (Long) results.get(0).get("ib_buyer_id");
+	} else {
+		ib_buyer_id = new Long( (Integer) results.get(0).get("ib_buyer_id") );
+	}
         double u_balance = (double)results.get(0).get("u_balance");
         
         // Make sure that the buyer has enough money to cover this charge
@@ -261,9 +276,9 @@ public class NewPurchase extends Procedure {
         sb.append(item_id);
         sb.append(", ");
         sb.append(seller_id);
-        sb.append(", ");
+        sb.append(", '");
         sb.append(currentTime);
-        sb.append(")");
+        sb.append("')");
         updated = RestQuery.restOtherQuery(sb.toString(), 0);
 
         assert(updated == 1);
@@ -274,9 +289,9 @@ public class NewPurchase extends Procedure {
         sb.append(AuctionMarkConstants.TABLENAME_ITEM);
         sb.append(" SET i_status = ");
         sb.append(ItemStatus.CLOSED.ordinal());
-        sb.append(", i_updated = ");
+        sb.append(", i_updated = '");
         sb.append(currentTime);
-        sb.append(" WHERE i_id = ");
+        sb.append("' WHERE i_id = ");
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
@@ -325,9 +340,9 @@ public class NewPurchase extends Procedure {
             sb.append(item_id);
             sb.append(", ");
             sb.append(seller_id);
-            sb.append(", ");
+            sb.append(", '");
             sb.append(currentTime);
-            sb.append(")");
+            sb.append("')");
             updated = RestQuery.restOtherQuery(sb.toString(), 0);
         }
         assert(updated == 1) :
@@ -373,7 +388,7 @@ public class NewPurchase extends Procedure {
             // NUM BIDS
             i_num_bids,
             // END DATE
-            i_end_date,
+            i_end_date.getTime(),
             // STATUS
             i_status.ordinal(),
             // PURCHASE ID

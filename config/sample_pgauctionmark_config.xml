@@ -22,7 +22,7 @@
           <time>300</time>
           <rate>10000</rate>
 	  <!-- <weights>45, 10, 20, 2, 1, 4, 10, 5, 3</weights> -->
-	  <weights>0, 0, 0, 0, 0, 0, 100, 0, 0</weights>
+	  <weights>0, 0, 0, 0, 0, 0, 0, 100, 0</weights>
         </work>
     </works>
     
