@@ -154,7 +154,7 @@ public class NewPurchase extends Procedure {
         
         PreparedStatement stmt = null;
         List<Map<String, Object>> results = null;
-        long updated;
+        long updated = 0;
         boolean adv;
         StringBuilder sb;
         
@@ -279,7 +279,11 @@ public class NewPurchase extends Procedure {
         sb.append(", '");
         sb.append(currentTime);
         sb.append("')");
-        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	try {
+		updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	} catch( Exception e ) {
+		
+	}
 
         assert(updated == 1);
         
@@ -343,7 +347,10 @@ public class NewPurchase extends Procedure {
             sb.append(", '");
             sb.append(currentTime);
             sb.append("')");
-            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	    try {
+		    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	    } catch( Exception e ) {
+	    }
         }
         assert(updated == 1) :
             String.format("Failed to update %s for Buyer #%d's Item #%d",

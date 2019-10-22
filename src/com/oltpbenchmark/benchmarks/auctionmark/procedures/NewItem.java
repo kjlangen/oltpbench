@@ -182,6 +182,8 @@ public class NewItem extends Procedure {
         // them to the item description
         List<Map<String, Object>> results = null;
         long updated = -1;
+
+	// Could certainly put a loop here.
         
         // ATTRIBUTES
         description += ";ATTRIBUTES: ";
