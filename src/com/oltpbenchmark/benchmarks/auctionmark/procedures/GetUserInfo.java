@@ -141,7 +141,7 @@ public class GetUserInfo extends Procedure {
         sb.append(" WHERE u_id = ");
         sb.append(user_id);
         sb.append(" AND u_r_id = r_id");
-        results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+        results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         result_idx++;
 
         // They can also get their USER_FEEDBACK records if they want as well
@@ -159,7 +159,7 @@ public class GetUserInfo extends Procedure {
             sb.append(" WHERE u_id = ");
             sb.append(user_id);
             sb.append(" AND uf_u_id = u_id ORDER BY uf_date DESC LIMIT 25");
-            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         }
         result_idx++;
         
@@ -181,7 +181,7 @@ public class GetUserInfo extends Procedure {
             sb.append(ItemStatus.OPEN.ordinal());
             sb.append(" AND i_id = ic_i_id AND i_u_id = ic_u_id AND ic_response IS NULL");
             sb.append(" ORDER BY ic_created DESC LIMIT 25");
-            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         }
         result_idx++;
         
@@ -198,7 +198,7 @@ public class GetUserInfo extends Procedure {
             sb.append(" WHERE i_u_id = ");
             sb.append(user_id);
             sb.append(" ORDER BY i_end_date DESC LIMIT 25");
-            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         }
         result_idx++;
 
@@ -220,7 +220,7 @@ public class GetUserInfo extends Procedure {
             sb.append(" WHERE ui_u_id = ");
             sb.append(user_id);
             sb.append(" AND ui_i_id = i_id AND ui_i_u_id = i_u_id ORDER BY i_end_date DESC LIMIT 25");
-            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         }
         result_idx++;
         
@@ -239,7 +239,7 @@ public class GetUserInfo extends Procedure {
             sb.append(" WHERE uw_u_id = ");
             sb.append(user_id);
             sb.append(" AND uw_i_id = i_id AND uw_i_u_id = i_u_id ORDER BY i_end_date DESC LIMIT 25");
-            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), 0));
+            results.put(result_idx, RestQuery.restReadQuery(sb.toString(), clientId));
         }
         result_idx++;
 

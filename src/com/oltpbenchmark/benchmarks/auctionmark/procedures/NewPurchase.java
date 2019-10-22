@@ -147,7 +147,7 @@ public class NewPurchase extends Procedure {
     // -----------------------------------------------------------------
     
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
-                        long item_id, long seller_id, long ip_id, double buyer_credit) throws SQLException {
+                        long item_id, long seller_id, long ip_id, double buyer_credit, int clientId ) throws SQLException {
 
 	LOG.info( "GOING TO PURCHASE: " + item_id + " with IP_ID: " + ip_id );
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
@@ -166,7 +166,7 @@ public class NewPurchase extends Procedure {
         sb.append(item_id);
         sb.append(" AND imb_u_id = ");
         sb.append(seller_id);
-        results = RestQuery.restReadQuery(sb.toString(), 0);
+        results = RestQuery.restReadQuery(sb.toString(), clientId);
 
         if (results.isEmpty()) {
             // TODO: altered the where condition since there were no columns with those names
@@ -179,7 +179,7 @@ public class NewPurchase extends Procedure {
             sb.append(" AND ib_u_id = ");
             sb.append(seller_id);
             sb.append(" ORDER BY ib_bid DESC LIMIT 1");
-            results = RestQuery.restReadQuery(sb.toString(), 0);
+            results = RestQuery.restReadQuery(sb.toString(), clientId);
             assert(!results.isEmpty());
             long bid_id = (long)results.get(0).get("ib_id");
 
@@ -202,7 +202,7 @@ public class NewPurchase extends Procedure {
             sb.append(", ");
             sb.append(currentTime);
             sb.append(")");
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
             assert(updated == 1) :
                 String.format("Failed to update %s for Seller #%d's Item #%d",
                               AuctionMarkConstants.TABLENAME_ITEM_MAX_BID, seller_id, item_id);
@@ -226,7 +226,7 @@ public class NewPurchase extends Procedure {
         sb.append(seller_id);
         sb.append(" AND imb_i_id = i_id AND imb_u_id = i_u_id AND imb_ib_id = ib_id");
         sb.append(" AND imb_ib_i_id = ib_i_id AND imb_ib_u_id = ib_u_id AND ib_buyer_id = u_id");
-        results = RestQuery.restReadQuery(sb.toString(), 0);
+        results = RestQuery.restReadQuery(sb.toString(), clientId);
         if (results.isEmpty()) {
             throw new UserAbortException("No ITEM_MAX_BID is available for item " + item_id);
         }
@@ -279,7 +279,7 @@ public class NewPurchase extends Procedure {
         sb.append(", '");
         sb.append(currentTime);
         sb.append("')");
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
 
         assert(updated == 1);
         
@@ -295,7 +295,7 @@ public class NewPurchase extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         assert(updated == 1) :
             String.format("Failed to update %s for Seller #%d's Item #%d",
                           AuctionMarkConstants.TABLENAME_ITEM, seller_id, item_id);
@@ -319,7 +319,7 @@ public class NewPurchase extends Procedure {
         sb.append(item_id);
         sb.append(" AND ui_i_u_id = ");
         sb.append(seller_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
 
         if (updated == 0) {
             sb = new StringBuilder();
@@ -343,7 +343,7 @@ public class NewPurchase extends Procedure {
             sb.append(", '");
             sb.append(currentTime);
             sb.append("')");
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         }
         assert(updated == 1) :
             String.format("Failed to update %s for Buyer #%d's Item #%d",
@@ -357,7 +357,7 @@ public class NewPurchase extends Procedure {
         sb.append(-1*(i_current_price) + buyer_credit);
         sb.append(" WHERE u_id = ");
         sb.append(ib_buyer_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId); 
         assert(updated == 1) :
             String.format("Failed to update %s for Buyer #%d",
                           AuctionMarkConstants.TABLENAME_USERACCT, ib_buyer_id);
@@ -370,7 +370,7 @@ public class NewPurchase extends Procedure {
         sb.append(i_current_price);
         sb.append(" WHERE u_id = ");
         sb.append(seller_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         assert(updated == 1) :
             String.format("Failed to update %s for Seller #%d",
                           AuctionMarkConstants.TABLENAME_USERACCT, seller_id);

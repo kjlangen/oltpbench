@@ -79,7 +79,7 @@ public class NewFeedback extends Procedure {
     // -----------------------------------------------------------------
     
     public void run(Connection conn, Timestamp benchmarkTimes[],
-                    long user_id, long i_id, long seller_id, long from_id, long rating, String comment) throws SQLException {
+                    long user_id, long i_id, long seller_id, long from_id, long rating, String comment, int clientId ) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
 
         // Check to make sure they're not trying to add feedback
@@ -96,7 +96,7 @@ public class NewFeedback extends Procedure {
         sb.append(seller_id);
         sb.append(" AND uf_from_id = ");
         sb.append(from_id);
-        List<Map<String, Object>> rs = RestQuery.restReadQuery(sb.toString(), 0);
+        List<Map<String, Object>> rs = RestQuery.restReadQuery(sb.toString(), clientId);
         if (!rs.isEmpty()) {
             throw new UserAbortException("Trying to add feedback for item " + i_id + " twice");
         }
@@ -120,7 +120,7 @@ public class NewFeedback extends Procedure {
         sb.append("', ");
         sb.append(RestQuery.quoteAndSanitize(comment));
         sb.append(")");
-        long updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        long updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         assert(updated == 1) :
             "Failed to add feedback for Item #" + i_id;
 
@@ -133,7 +133,7 @@ public class NewFeedback extends Procedure {
         sb.append(currentTime);
         sb.append("' WHERE u_id = ");
         sb.append(user_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         assert(updated == 1) :
             "Failed to updated User #" + user_id;
 

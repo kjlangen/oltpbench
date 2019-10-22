@@ -73,7 +73,7 @@ public class GetItem extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        List<Map<String, Object>> item_results = RestQuery.restReadQuery(sb.toString(), 0);
+        List<Map<String, Object>> item_results = RestQuery.restReadQuery(sb.toString(), clientId );
         if (item_results.size() == 0) {
             throw new UserAbortException("Invalid item " + item_id);
         }
@@ -94,7 +94,7 @@ public class GetItem extends Procedure {
         sb.append(" WHERE u_id = ");
         sb.append(seller_id);
         sb.append(" AND u_r_id = r_id");
-        List<Map<String, Object>> user_results = RestQuery.restReadQuery(sb.toString(), 0);
+        List<Map<String, Object>> user_results = RestQuery.restReadQuery(sb.toString(), clientId );
 
         Object user_row[] = null;
         if (user_results.size() == 0) {

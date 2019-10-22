@@ -756,7 +756,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
                                        sellerId.encode(),
                                        from_id,
                                        rating,
-                                       feedback);
+                                       feedback,
+				       this.getId() );
         conn.commit();
         
         return (true);
@@ -807,7 +808,7 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
             results = proc.run(conn, benchmarkTimes, itemIdEncoded, sellerId.encode(),
                                                      categoryId, name, description,
                                                      duration, initial_price, attributes,
-                                                     gag_ids, gav_ids, images);
+                                                     gag_ids, gav_ids, images, this.getId() );
         } catch (DuplicateItemIdException ex) {
             profile.seller_item_cnt.set(sellerId, ex.getItemCount());
             throw ex;
@@ -853,7 +854,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         Object results[] = proc.run(conn, benchmarkTimes, encodedItemId,
                                                           sellerId.encode(),
                                                           ip_id,
-				                          buyer_credit);
+				                          buyer_credit,
+							  this.getId() );
         conn.commit();
         
         ItemId itemId = this.processItemRecord(results);
@@ -894,7 +896,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
                                        sellerId.encode(),
                                        description,
                                        delete_attribute,
-                                       add_attribute);
+                                       add_attribute,
+				       this.getId() );
         conn.commit();
         
         return (true);

@@ -82,7 +82,7 @@ public class UpdateItem extends Procedure {
 	 */
     public boolean run(Connection conn, Timestamp benchmarkTimes[],
                        long item_id, long seller_id, String description,
-                       boolean delete_attribute, long add_attribute[]) throws SQLException {
+                       boolean delete_attribute, long add_attribute[], int clientId ) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         
         StringBuilder sb = new StringBuilder();
@@ -96,7 +96,7 @@ public class UpdateItem extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        long updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        long updated = RestQuery.restOtherQuery(sb.toString(), clientId );
         if (updated == 0) {
             throw new UserAbortException("Unable to update closed auction");
         }
@@ -114,7 +114,7 @@ public class UpdateItem extends Procedure {
             sb.append(item_id);
             sb.append(" AND ia_u_id = ");
             sb.append(seller_id);
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId );
 
         }
         // ADD ITEM_ATTRIBUTE
@@ -131,7 +131,7 @@ public class UpdateItem extends Procedure {
             sb.append(item_id);
             sb.append(" AND ia_u_id = ");
             sb.append(seller_id);
-            List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
+            List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), clientId);
             if (!results.isEmpty()) {
                 ia_id = (long)results.get(0).get("m_ia_id");
             } else {
@@ -154,7 +154,7 @@ public class UpdateItem extends Procedure {
             sb.append(", ");
             sb.append(gav_id);
             sb.append(")");
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
             assert(updated == 1);
         }
         

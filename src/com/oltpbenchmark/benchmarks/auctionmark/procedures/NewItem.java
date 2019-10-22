@@ -158,7 +158,7 @@ public class NewItem extends Procedure {
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
                         long item_id, long seller_id, long category_id,
                         String name, String description, long duration, double initial_price, String attributes,
-                        long gag_ids[], long gav_ids[], String images[]) throws SQLException {
+                        long gag_ids[], long gav_ids[], String images[], int clientId) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
 
@@ -196,7 +196,7 @@ public class NewItem extends Procedure {
             sb.append(" AND gav_gag_id = ");
             sb.append(gag_ids[i]);
             sb.append(" AND gav_gag_id = gag_id");
-            results = RestQuery.restReadQuery(sb.toString(), 0);
+            results = RestQuery.restReadQuery(sb.toString(), clientId);
             if (!results.isEmpty()) {
                 description += String.format(" %s - %s,", results.get(0).get("gag_name"), results.get(0).get("gav_name"));
             }
@@ -208,7 +208,7 @@ public class NewItem extends Procedure {
         sb.append(AuctionMarkConstants.TABLENAME_CATEGORY);
         sb.append(" WHERE c_id = ");
         sb.append(category_id);
-        results = RestQuery.restReadQuery(sb.toString(), 0);
+        results = RestQuery.restReadQuery(sb.toString(), clientId);
         assert(!results.isEmpty());
         String category_name = String.format("%s[%d]", results.get(0).get("c_name"), results.get(0).get("c_id"));
         
@@ -218,7 +218,7 @@ public class NewItem extends Procedure {
         sb.append(AuctionMarkConstants.TABLENAME_CATEGORY);
         sb.append(" WHERE c_parent_id = ");
         sb.append(category_id);
-        results = RestQuery.restReadQuery(sb.toString(), 0);
+        results = RestQuery.restReadQuery(sb.toString(), clientId);
         String category_parent = null;
         if (!results.isEmpty()) {
             category_parent = String.format("%s[%d]", results.get(0).get("c_name"), results.get(0).get("c_id"));
@@ -285,14 +285,14 @@ public class NewItem extends Procedure {
         //     } else throw ex;
         // }
         try {
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         } catch (Exception ex) {
             sb = new StringBuilder();
             sb.append("SELECT COUNT(*) AS all_count FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM);
             sb.append(" WHERE i_u_id = ");
             sb.append(seller_id);
-            results = RestQuery.restReadQuery(sb.toString(), 0);
+            results = RestQuery.restReadQuery(sb.toString(), clientId);
             assert(!results.isEmpty());
             int item_count = (int)results.get(0).get("all_count");
             throw new DuplicateItemIdException(item_id, seller_id, item_count, ex);
@@ -315,7 +315,7 @@ public class NewItem extends Procedure {
             sb.append(", ");
             sb.append(gag_ids[i]);
             sb.append(")");
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
             assert(updated == 1);
         }
         
@@ -333,7 +333,7 @@ public class NewItem extends Procedure {
             sb.append(", '");
             sb.append(images[i]);
             sb.append("')");
-            updated = RestQuery.restOtherQuery(sb.toString(), 0);
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
             assert(updated == 1);
         }
 
@@ -345,7 +345,7 @@ public class NewItem extends Procedure {
         sb.append(currentTime);
         sb.append("' WHERE u_id = ");
         sb.append(seller_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), 0);
+        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         assert(updated == 1);
         
         // Return new item_id and user_id
