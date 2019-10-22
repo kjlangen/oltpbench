@@ -77,7 +77,7 @@ public class NewComment extends Procedure {
     // -----------------------------------------------------------------
     
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
-                        long item_id, long seller_id, long buyer_id, String question) throws SQLException {
+                        long item_id, long seller_id, long buyer_id, String question, int clientId ) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
     	
         // Set comment_id
@@ -90,7 +90,7 @@ public class NewComment extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), 0);
+        List<Map<String, Object>> results = RestQuery.restReadQuery(sb.toString(), clientId);
         if (!results.isEmpty()) {
 	    if( results.get(0).get("i_num_comments") instanceof Long ) {
 		    ic_id = (Long)results.get(0).get("i_num_comments") + 1;
@@ -118,7 +118,7 @@ public class NewComment extends Procedure {
         sb.append("', '");
         sb.append(currentTime);
         sb.append("')");
-        RestQuery.restOtherQuery(sb.toString(), 0);
+        RestQuery.restOtherQuery(sb.toString(), clientId);
 
         sb = new StringBuilder();
         sb.append("UPDATE ");
@@ -128,7 +128,7 @@ public class NewComment extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        RestQuery.restOtherQuery(sb.toString(), 0);
+        RestQuery.restOtherQuery(sb.toString(), clientId);
 
         sb = new StringBuilder();
         sb.append("UPDATE ");
@@ -137,7 +137,7 @@ public class NewComment extends Procedure {
         sb.append(currentTime);
         sb.append("' WHERE u_id = ");
         sb.append(seller_id);
-        RestQuery.restOtherQuery(sb.toString(), 0);
+        RestQuery.restOtherQuery(sb.toString(), clientId);
 
         // Return new ic_id
         return (new Object[]{ ic_id, item_id, seller_id });

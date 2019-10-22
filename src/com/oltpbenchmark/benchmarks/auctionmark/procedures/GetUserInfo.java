@@ -120,7 +120,8 @@ public class GetUserInfo extends Procedure {
                                 boolean get_comments,
                                 boolean get_seller_items,
                                 boolean get_buyer_items,
-                                boolean get_watched_items) throws SQLException {
+                                boolean get_watched_items,
+				int clientId) throws SQLException {
         final boolean debug = LOG.isDebugEnabled();
         
         Map<Integer, List<Map<String, Object>>> results = new HashMap<>();

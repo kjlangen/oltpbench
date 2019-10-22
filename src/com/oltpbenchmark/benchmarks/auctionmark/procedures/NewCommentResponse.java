@@ -57,7 +57,7 @@ public class NewCommentResponse extends Procedure {
     // -----------------------------------------------------------------
     
     public void run(Connection conn, Timestamp benchmarkTimes[],
-                    long item_id, long seller_id, long comment_id, String response) throws SQLException {
+                    long item_id, long seller_id, long comment_id, String response, int clientId) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
 
         StringBuilder sb = new StringBuilder();
@@ -73,7 +73,7 @@ public class NewCommentResponse extends Procedure {
         sb.append(item_id);
         sb.append(" AND ic_u_id = ");
         sb.append(seller_id);
-        RestQuery.restOtherQuery(sb.toString(), 0);
+        RestQuery.restOtherQuery(sb.toString(), clientId);
 
         sb = new StringBuilder();
         sb.append("UPDATE ");
@@ -82,7 +82,7 @@ public class NewCommentResponse extends Procedure {
         sb.append(currentTime);
         sb.append("' WHERE u_id = ");
         sb.append(seller_id);
-        RestQuery.restOtherQuery(sb.toString(), 0);
+        RestQuery.restOtherQuery(sb.toString(), clientId);
 
         return;
     }	

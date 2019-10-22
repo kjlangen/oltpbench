@@ -139,7 +139,7 @@ public class NewBid extends Procedure {
     );
 
     public Object[] run(Connection conn, Timestamp benchmarkTimes[],
-                        long item_id, long seller_id, long buyer_id, double newBid, Timestamp estimatedEndDate) throws SQLException {
+                        long item_id, long seller_id, long buyer_id, double newBid, Timestamp estimatedEndDate, int clientId) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
         if (debug) LOG.debug(String.format("Attempting to place new bid on Item %d [buyer=%d, bid=%.2f]",
@@ -160,7 +160,7 @@ public class NewBid extends Procedure {
         sb.append(item_id);
         sb.append(" AND i_u_id = ");
         sb.append(seller_id);
-        results = RestQuery.restReadQuery(sb.toString(), 0);
+        results = RestQuery.restReadQuery(sb.toString(), clientId);
         if (results.isEmpty()) {
             throw new UserAbortException("Invalid item " + item_id);
         }
@@ -198,7 +198,7 @@ public class NewBid extends Procedure {
             sb.append(item_id);
             sb.append(" AND ib_u_id = ");
             sb.append(seller_id);
-            results = RestQuery.restReadQuery(sb.toString(), 0);
+            results = RestQuery.restReadQuery(sb.toString(), clientId);
             assert(!results.isEmpty());
 	    if( results.get(0).get("m_id") instanceof Long ) {
 		    newBidId = (Long) results.get(0).get("m_id") + 1;
@@ -217,7 +217,7 @@ public class NewBid extends Procedure {
             sb.append(" AND imb_u_id = ");
             sb.append(seller_id);
             sb.append(" AND imb_ib_id = ib_id AND imb_ib_i_id = ib_i_id AND imb_ib_u_id = ib_u_id ");
-            results = RestQuery.restReadQuery(sb.toString(), 0);
+            results = RestQuery.restReadQuery(sb.toString(), clientId);
             assert(!results.isEmpty());
 
 	    long currentBidId;
@@ -267,7 +267,7 @@ public class NewBid extends Procedure {
                 sb.append(item_id);
                 sb.append(" AND ib_u_id = ");
                 sb.append(seller_id);
-                RestQuery.restOtherQuery(sb.toString(), 0);
+                RestQuery.restOtherQuery(sb.toString(), clientId);
 
                 if (debug) LOG.debug(String.format("Increasing the max bid the highest bidder %s from %.2f to %.2f for Item %d",
                                                    buyer_id, currentBidMax, newBid, item_id));
@@ -307,7 +307,7 @@ public class NewBid extends Procedure {
                     sb.append(item_id);
                     sb.append(" AND ib_u_id = ");
                     sb.append(seller_id);
-                    RestQuery.restOtherQuery(sb.toString(), 0);
+                    RestQuery.restOtherQuery(sb.toString(), clientId);
 
                     if (debug) LOG.debug(String.format("Keeping the existing highest bidder of Item %d as %s but updating current price from %.2f to %.2f",
                                                        item_id, buyer_id, currentBidAmount, i_current_price));
@@ -337,7 +337,7 @@ public class NewBid extends Procedure {
                 sb.append("', '");
                 sb.append(currentTime);
                 sb.append("')");
-                RestQuery.restOtherQuery(sb.toString(), 0);
+                RestQuery.restOtherQuery(sb.toString(), clientId);
 
                 sb = new StringBuilder();
                 sb.append("UPDATE ");
@@ -350,7 +350,7 @@ public class NewBid extends Procedure {
                 sb.append(item_id);
                 sb.append(" AND i_u_id = ");
                 sb.append(seller_id);
-                RestQuery.restOtherQuery(sb.toString(), 0);
+                RestQuery.restOtherQuery(sb.toString(), clientId);
                 
                 // This has to be done after we insert the ITEM_BID record to make sure
                 // that the HSQLDB test cases work
@@ -370,7 +370,7 @@ public class NewBid extends Procedure {
                     sb.append(item_id);
                     sb.append(" AND imb_u_id = ");
                     sb.append(seller_id);
-                    RestQuery.restOtherQuery(sb.toString(), 0);
+                    RestQuery.restOtherQuery(sb.toString(), clientId);
 
                     if (debug) LOG.debug(String.format("Changing new highest bidder of Item %d to %s [newMaxBid=%.2f > currentMaxBid=%.2f]",
                                          item_id, UserId.toString(buyer_id), newBid, currentBidMax));
@@ -399,7 +399,7 @@ public class NewBid extends Procedure {
             sb.append("', '");
             sb.append(currentTime);
             sb.append("')");
-            RestQuery.restOtherQuery(sb.toString(), 0);
+            RestQuery.restOtherQuery(sb.toString(), clientId);
             
             sb = new StringBuilder();
             sb.append("INSERT INTO ");
@@ -419,7 +419,7 @@ public class NewBid extends Procedure {
             sb.append("', '");
             sb.append(currentTime);
             sb.append("')");
-            RestQuery.restOtherQuery(sb.toString(), 0);
+            RestQuery.restOtherQuery(sb.toString(), clientId);
 
             sb = new StringBuilder();
             sb.append("UPDATE ");
@@ -432,7 +432,7 @@ public class NewBid extends Procedure {
             sb.append(item_id);
             sb.append(" AND i_u_id = ");
             sb.append(seller_id);
-            RestQuery.restOtherQuery(sb.toString(), 0);
+            RestQuery.restOtherQuery(sb.toString(), clientId);
 
             if (debug) LOG.debug(String.format("Creating the first bid record for Item %d and setting %s as highest bidder at %.2f",
                                                item_id, buyer_id, i_current_price));

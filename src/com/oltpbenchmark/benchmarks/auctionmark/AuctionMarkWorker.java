@@ -541,7 +541,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
                                                                   get_comments,
                                                                   get_seller_items,
                                                                   get_buyer_items,
-                                                                  get_watched_items);
+                                                                  get_watched_items,
+								  this.getId() );
         conn.commit();
         
         List<Object[]> vt = null;
@@ -664,7 +665,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
                                                           sellerId.encode(),
                                                           buyerId.encode(),
                                                           maxBid,
-                                                          itemInfo.endDate);
+                                                          itemInfo.endDate,
+							  this.getId() );
         conn.commit();
         
         ItemId itemId = this.processItemRecord(results);
@@ -689,7 +691,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
                                           itemInfo.itemId.encode(),
                                           sellerId.encode(),
                                           buyerId.encode(),
-                                          question);
+                                          question,
+					  this.getId());
         conn.commit();
         assert(results != null);
         
@@ -719,7 +722,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         proc.run(conn, benchmarkTimes, itemId.encode(),
                                        sellerId.encode(),
                                        commentId,
-                                       response);
+                                       response,
+				       this.getId());
         conn.commit();
         
         return (true);
