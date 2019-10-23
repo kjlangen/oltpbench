@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://52.26.134.17:5432/auctionmark</DBUrl>
-    <DBRestHost>54.157.140.190</DBRestHost>
+    <DBUrl>jdbc:postgresql://34.222.21.179:5432/auctionmark</DBUrl>
+    <DBRestHost>54.237.101.153</DBRestHost>
     <username>kronos</username>
     <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
@@ -16,7 +16,7 @@
     <scalefactor>50</scalefactor>
 
     <!-- The workload -->
-    <terminals>10</terminals>
+    <terminals>1</terminals>
     <works>
         <work>
           <time>300</time>

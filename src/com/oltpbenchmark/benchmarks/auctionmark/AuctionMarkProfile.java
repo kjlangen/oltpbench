@@ -502,10 +502,10 @@ public class AuctionMarkProfile {
     public synchronized Timestamp updateAndGetCurrentTime() {
         this.getScaledCurrentTimestamp(this.currentTime);
         if (LOG.isTraceEnabled()) LOG.trace("CurrentTime: " + currentTime);
-        return this.currentTime;
+        return (Timestamp) this.currentTime.clone();
     }
     public Timestamp getCurrentTime() {
-        return this.currentTime;
+        return (Timestamp) this.currentTime.clone();
     }
     
     public Timestamp getLoaderStartTime() {
@@ -529,10 +529,10 @@ public class AuctionMarkProfile {
 
     public synchronized Timestamp updateAndGetLastCloseAuctionsTime() {
         this.getScaledCurrentTimestamp(this.lastCloseAuctionsTime);
-        return this.lastCloseAuctionsTime;
+        return (Timestamp) this.lastCloseAuctionsTime.clone();
     }
     public Timestamp getLastCloseAuctionsTime() {
-        return this.lastCloseAuctionsTime;
+        return (Timestamp) this.lastCloseAuctionsTime.clone();
     }
     public boolean hasLastCloseAuctionsTime() {
         return (this.lastCloseAuctionsTime.getTime() != 0);

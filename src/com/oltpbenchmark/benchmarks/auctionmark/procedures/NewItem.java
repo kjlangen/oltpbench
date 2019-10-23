@@ -347,7 +347,10 @@ public class NewItem extends Procedure {
         sb.append(currentTime);
         sb.append("' WHERE u_id = ");
         sb.append(seller_id);
-        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	try {
+		updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	} catch( Exception e ) {
+	}
         assert(updated == 1);
         
         // Return new item_id and user_id

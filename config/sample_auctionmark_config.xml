@@ -12,10 +12,10 @@
     <uploadUrl></uploadUrl>
     
     <!-- Scalefactor in AuctionMark scales by *1000 the number of customers-->
-    <scalefactor>10</scalefactor>
+    <scalefactor>50</scalefactor>
 
     <!-- The workload -->
-    <terminals>10</terminals>
+    <terminals>1</terminals>
     <works>
         <work>
           <time>300</time>

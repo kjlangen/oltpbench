@@ -114,26 +114,42 @@ public class CloseAuctions extends Procedure {
             sb.append(AuctionMarkConstants.ITEM_COLUMNS_STR);
             sb.append(" FROM ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM);
-            sb.append(" WHERE (i_start_date BETWEEN ");
+            sb.append(" WHERE (i_start_date BETWEEN '");
             sb.append(startTime);
-            sb.append(" AND ");
+            sb.append("' AND '");
             sb.append(endTime);
-            sb.append(") AND ");
+            sb.append("') AND i_status = ");
             sb.append(ItemStatus.OPEN.ordinal());
-            sb.append(" ORDER BY i_id ASC LIMIT");
+            sb.append(" ORDER BY i_id ASC LIMIT " );
             sb.append(AuctionMarkConstants.CLOSE_AUCTIONS_ITEMS_PER_ROUND);
             dueItemsTable = RestQuery.restReadQuery(sb.toString(), 0);
+	    LOG.warn( "CLOSE AUCTION ROWS: " + dueItemsTable.size() );
             if (dueItemsTable.isEmpty()) break;
 
             output_rows.clear();
             for (Map<String, Object> dueItemsRow : dueItemsTable) {
-                long itemId = (long)dueItemsRow.get("i_id");
-                long sellerId = (long)dueItemsRow.get("i_u_id");
+                long itemId;
+	        if( dueItemsRow.get("i_id") instanceof Long ) {
+			itemId = (Long) dueItemsRow.get("i_id");
+		} else {
+			itemId = new Long( (Integer) dueItemsRow.get("i_id") );
+		}
+                long sellerId;
+	        if( dueItemsRow.get("i_u_id") instanceof Long ) {
+			sellerId = (Long) dueItemsRow.get("i_u_id");
+		} else {
+			sellerId = new Long( (Integer) dueItemsRow.get("i_u_id") );
+		}
                 String i_name = (String)dueItemsRow.get("i_name");
                 double currentPrice = (double)dueItemsRow.get("i_current_price");
-                long numBids = (long)dueItemsRow.get("i_num_bids");
-                Timestamp endDate = (Timestamp)dueItemsRow.get("i_end_date");
-                ItemStatus itemStatus = ItemStatus.get((long)dueItemsRow.get("i_status"));
+                long numBids;
+	        if( dueItemsRow.get("i_num_bids") instanceof Long ) {
+			numBids = (Long) dueItemsRow.get("i_num_bids");
+		} else {
+			numBids = new Long( (Integer) dueItemsRow.get("i_num_bids") );
+		}
+                Timestamp endDate = new Timestamp( (Long) dueItemsRow.get("i_end_date") );
+                ItemStatus itemStatus = ItemStatus.get((Integer) dueItemsRow.get("i_status"));
                 Long bidId = null;
                 Long buyerId = null;
                 
@@ -194,9 +210,9 @@ public class CloseAuctions extends Procedure {
                 sb.append(AuctionMarkConstants.TABLENAME_ITEM);
                 sb.append(" SET i_status = ");
                 sb.append(itemStatus.ordinal());
-                sb.append(", i_updated = ");
+                sb.append(", i_updated = '");
                 sb.append(currentTime);
-                sb.append(" WHERE i_id = ");
+                sb.append("' WHERE i_id = ");
                 sb.append(itemId);
                 sb.append(" AND i_u_id = ");
                 sb.append(sellerId);

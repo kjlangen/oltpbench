@@ -101,8 +101,7 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
 //                assert(AuctionMarkWorker.this.closeAuctions_flag.get() == false);
                 
                 if (AuctionMarkConstants.CLOSE_AUCTIONS_SEPARATE_THREAD) {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug(String.format("Executing %s in separate thread", txnType));
+                        LOG.warn(String.format("Executing %s in separate thread", txnType));
                     try {
                         executeCloseAuctions((CloseAuctions)proc);
                     } catch (Exception ex) {
@@ -471,6 +470,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         Timestamp benchmarkTimes[] = this.getTimestampParameterArray();
         Timestamp startTime = profile.getLastCloseAuctionsTime();
         Timestamp endTime = profile.updateAndGetLastCloseAuctionsTime();
+	LOG.warn( "Got START time: " + startTime );
+	LOG.warn( "Got END time: " + startTime );
         
         List<Object[]> results = proc.run(conn, benchmarkTimes, startTime, endTime);
         conn.commit();
