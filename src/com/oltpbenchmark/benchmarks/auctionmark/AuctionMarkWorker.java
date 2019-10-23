@@ -471,9 +471,9 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         Timestamp startTime = profile.getLastCloseAuctionsTime();
         Timestamp endTime = profile.updateAndGetLastCloseAuctionsTime();
 	LOG.warn( "Got START time: " + startTime );
-	LOG.warn( "Got END time: " + startTime );
+	LOG.warn( "Got END time: " + endTime );
         
-        List<Object[]> results = proc.run(conn, benchmarkTimes, startTime, endTime);
+        List<Object[]> results = proc.run(conn, benchmarkTimes, startTime, endTime, this.getId() );
         conn.commit();
         
         assert(null != results);

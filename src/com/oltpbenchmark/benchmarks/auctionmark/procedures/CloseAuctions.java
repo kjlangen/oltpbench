@@ -91,7 +91,7 @@ public class CloseAuctions extends Procedure {
      * @return
      */
     public List<Object[]> run(Connection conn, Timestamp benchmarkTimes[],
-                              Timestamp startTime, Timestamp endTime) throws SQLException {
+                              Timestamp startTime, Timestamp endTime, int clientId) throws SQLException {
         final Timestamp currentTime = AuctionMarkUtil.getProcTimestamp(benchmarkTimes);
         final boolean debug = LOG.isDebugEnabled();
         
@@ -122,7 +122,7 @@ public class CloseAuctions extends Procedure {
             sb.append(ItemStatus.OPEN.ordinal());
             sb.append(" ORDER BY i_id ASC LIMIT " );
             sb.append(AuctionMarkConstants.CLOSE_AUCTIONS_ITEMS_PER_ROUND);
-            dueItemsTable = RestQuery.restReadQuery(sb.toString(), 0);
+            dueItemsTable = RestQuery.restReadQuery(sb.toString(), clientId);
 	    LOG.warn( "CLOSE AUCTION ROWS: " + dueItemsTable.size() );
             if (dueItemsTable.isEmpty()) break;
 
@@ -175,11 +175,21 @@ public class CloseAuctions extends Procedure {
                     sb.append(" AND imb_u_id = ");
                     sb.append(sellerId);
                     sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id ");
-                    maxBidResults = RestQuery.restReadQuery(sb.toString(), 0);
+                    maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
                     assert(maxBidResults != null);
                     
-                    bidId = (long)maxBidResults.get(0).get("imb_ib_id");
-                    buyerId = (long)maxBidResults.get(0).get("ib_buyer_id");
+		    if( maxBidResults.get( 0 ).get("imb_ib_id") instanceof Long ) {
+			    bidId = (Long) maxBidResults.get(0).get("imb_ib_id");
+		    } else { 
+			    bidId = new Long( (Integer) maxBidResults.get(0).get("imb_ib_id") );
+		    }
+
+		    if( maxBidResults.get(0).get("ib_buyer_id") instanceof Long ) {
+			    buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
+		    } else {
+			    buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
+		    }
+
                     sb = new StringBuilder();
                     sb.append("INSERT INTO ");
                     sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
@@ -190,13 +200,16 @@ public class CloseAuctions extends Procedure {
                     sb.append(buyerId);
                     sb.append(", ");
                     sb.append(sellerId);
-                    sb.append(", ");
+                    sb.append(", '");
                     sb.append(currentTime);
-                    sb.append(")");
-                    updated = RestQuery.restOtherQuery(sb.toString(), 0);
-                    assert(updated == 1);
-
+                    sb.append("')");
+		    try {
+                    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+		    } catch( Exception e ) {
+			    assert(updated == 1);
+		    }
                     itemStatus = ItemStatus.WAITING_FOR_PURCHASE;
+
                 }
                 // No bid on this item - set status to CLOSED
                 else {
@@ -216,7 +229,7 @@ public class CloseAuctions extends Procedure {
                 sb.append(itemId);
                 sb.append(" AND i_u_id = ");
                 sb.append(sellerId);
-                updated = RestQuery.restOtherQuery(sb.toString(), 0);
+                updated = RestQuery.restOtherQuery(sb.toString(), clientId);
                 if (debug)
                     LOG.debug(String.format("Updated Status for Item %d => %s", itemId, itemStatus));
                 
@@ -226,7 +239,7 @@ public class CloseAuctions extends Procedure {
                         i_name,               // i_name
                         currentPrice,         // i_current_price
                         numBids,              // i_num_bids
-                        endDate,              // i_end_date
+                        endDate.getTime(),              // i_end_date
                         itemStatus.ordinal(), // i_status
                         bidId,                // imb_ib_id
                         buyerId               // ib_buyer_id
