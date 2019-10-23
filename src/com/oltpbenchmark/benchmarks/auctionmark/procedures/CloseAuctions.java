@@ -123,31 +123,31 @@ public class CloseAuctions extends Procedure {
             sb.append(" ORDER BY i_id ASC LIMIT " );
             sb.append(AuctionMarkConstants.CLOSE_AUCTIONS_ITEMS_PER_ROUND);
             dueItemsTable = RestQuery.restReadQuery(sb.toString(), clientId);
-	    LOG.warn( "CLOSE AUCTION ROWS: " + dueItemsTable.size() );
+            LOG.warn( "CLOSE AUCTION ROWS: " + dueItemsTable.size() );
             if (dueItemsTable.isEmpty()) break;
 
             output_rows.clear();
             for (Map<String, Object> dueItemsRow : dueItemsTable) {
                 long itemId;
-	        if( dueItemsRow.get("i_id") instanceof Long ) {
-			itemId = (Long) dueItemsRow.get("i_id");
-		} else {
-			itemId = new Long( (Integer) dueItemsRow.get("i_id") );
-		}
+                if( dueItemsRow.get("i_id") instanceof Long ) {
+                    itemId = (Long) dueItemsRow.get("i_id");
+                } else {
+                    itemId = new Long( (Integer) dueItemsRow.get("i_id") );
+                }
                 long sellerId;
-	        if( dueItemsRow.get("i_u_id") instanceof Long ) {
-			sellerId = (Long) dueItemsRow.get("i_u_id");
-		} else {
-			sellerId = new Long( (Integer) dueItemsRow.get("i_u_id") );
-		}
+                if( dueItemsRow.get("i_u_id") instanceof Long ) {
+                    sellerId = (Long) dueItemsRow.get("i_u_id");
+                } else {
+                    sellerId = new Long( (Integer) dueItemsRow.get("i_u_id") );
+                }
                 String i_name = (String)dueItemsRow.get("i_name");
                 double currentPrice = (double)dueItemsRow.get("i_current_price");
                 long numBids;
-	        if( dueItemsRow.get("i_num_bids") instanceof Long ) {
-			numBids = (Long) dueItemsRow.get("i_num_bids");
-		} else {
-			numBids = new Long( (Integer) dueItemsRow.get("i_num_bids") );
-		}
+                if( dueItemsRow.get("i_num_bids") instanceof Long ) {
+                    numBids = (Long) dueItemsRow.get("i_num_bids");
+                } else {
+                    numBids = new Long( (Integer) dueItemsRow.get("i_num_bids") );
+                }
                 Timestamp endDate = new Timestamp( (Long) dueItemsRow.get("i_end_date") );
                 ItemStatus itemStatus = ItemStatus.get((Integer) dueItemsRow.get("i_status"));
                 Long bidId = null;
@@ -161,35 +161,35 @@ public class CloseAuctions extends Procedure {
                 // We'll also insert a new USER_ITEM record as needed
                 // We have to do this extra step because H-Store doesn't have good support in the
                 // query optimizer for LEFT OUTER JOINs
-		sb = new StringBuilder();
-		sb.append("SELECT imb_ib_id, ib_buyer_id");
-		sb.append(" FROM ");
-		sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
-		sb.append(", ");
-		sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
-		sb.append(" WHERE imb_i_id = ");
-		sb.append(itemId);
-		sb.append(" AND imb_u_id = ");
-		sb.append(sellerId);
-		sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id");
-		maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
+                sb = new StringBuilder();
+                sb.append("SELECT imb_ib_id, ib_buyer_id");
+                sb.append(" FROM ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+                sb.append(", ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+                sb.append(" WHERE imb_i_id = ");
+                sb.append(itemId);
+                sb.append(" AND imb_u_id = ");
+                sb.append(sellerId);
+                sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id");
+                maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
 		
-		if( !maxBidResults.isEmpty() ) {
+                if( !maxBidResults.isEmpty() ) {
 
                     waiting_ctr++;
                     assert(maxBidResults != null);
                     
-		    if( maxBidResults.get( 0 ).get("imb_ib_id") instanceof Long ) {
-			    bidId = (Long) maxBidResults.get(0).get("imb_ib_id");
-		    } else { 
-			    bidId = new Long( (Integer) maxBidResults.get(0).get("imb_ib_id") );
-		    }
+                    if( maxBidResults.get( 0 ).get("imb_ib_id") instanceof Long ) {
+                        bidId = (Long) maxBidResults.get(0).get("imb_ib_id");
+                    } else { 
+                        bidId = new Long( (Integer) maxBidResults.get(0).get("imb_ib_id") );
+                    }
 
-		    if( maxBidResults.get(0).get("ib_buyer_id") instanceof Long ) {
-			    buyerId = (Long) maxBidResults.get(0).get("ib_buyer_id");
-		    } else {
-			    buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
-		    }
+                    if( maxBidResults.get(0).get("ib_buyer_id") instanceof Long ) {
+                        buyerId = (Long) maxBidResults.get(0).get("ib_buyer_id");
+                    } else {
+                        buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
+                    }
 
                     sb = new StringBuilder();
                     sb.append("INSERT INTO ");
@@ -204,11 +204,11 @@ public class CloseAuctions extends Procedure {
                     sb.append(", '");
                     sb.append(currentTime);
                     sb.append("')");
-		    try {
-                    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
-		    } catch( Exception e ) {
-			    assert(updated == 1);
-		    }
+                    try {
+                        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+                    } catch( Exception e ) {
+                        assert(updated == 1);
+                    }
                     itemStatus = ItemStatus.WAITING_FOR_PURCHASE;
 
                 }
@@ -217,22 +217,6 @@ public class CloseAuctions extends Procedure {
                     closed_ctr++;
                     itemStatus = ItemStatus.CLOSED;
                 }
-                
-                // Update Status!
-                sb = new StringBuilder();
-                sb.append("UPDATE ");
-                sb.append(AuctionMarkConstants.TABLENAME_ITEM);
-                sb.append(" SET i_status = ");
-                sb.append(itemStatus.ordinal());
-                sb.append(", i_updated = '");
-                sb.append(currentTime);
-                sb.append("' WHERE i_id = ");
-                sb.append(itemId);
-                sb.append(" AND i_u_id = ");
-                sb.append(sellerId);
-                updated = RestQuery.restOtherQuery(sb.toString(), clientId);
-                if (debug)
-                    LOG.debug(String.format("Updated Status for Item %d => %s", itemId, itemStatus));
                 
                 Object row[] = new Object[] {
                         itemId,               // i_id
@@ -247,6 +231,32 @@ public class CloseAuctions extends Procedure {
                 };
                 output_rows.add(row);
             } // WHILE
+
+            sb = new StringBuilder();
+            sb.append("UPDATE ");
+            sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+            sb.append(" SET i_status = (CASE");
+            sb.append(" WHEN i_num_bids > 0 THEN 3 ELSE 4)," );
+            sb.append(" i_updated = ");
+            sb.append(currentTime);
+            sb.append(" WHERE i_id IN (");
+            boolean isFirst = true;
+            for (Map<String, Object> dueItemsRow : dueItemsTable) {
+                long itemId;
+                if( dueItemsRow.get("i_id") instanceof Long ) {
+                    itemId = (Long) dueItemsRow.get("i_id");
+                } else {
+                    itemId = new Long( (Integer) dueItemsRow.get("i_id") );
+                }
+                if( !isFirst ) {
+                    sb.append( "," );
+                } else {
+                    isFirst = false;
+                }
+                sb.append( " " );
+                sb.append(itemId);
+            }
+            sb.append( ")" );
         } // FOR
 
         if (debug)
