@@ -732,12 +732,19 @@ public class AuctionMarkProfile {
         Timestamp currentTime = this.updateAndGetCurrentTime();
         assert(currentTime != null);
         
+
+
         for (LinkedList<ItemInfo> items : allItemSets) {
             // If the items is already in the completed queue, then we don't need
             // to do anything with it.
             if (items == this.items_completed) continue;
             
-            for (ItemInfo itemInfo : items) {
+	    // This could be expensive, so ideally we don't want to do this.
+	    LOG.warn( "Cloning list of size: " + items.size() );
+	    List<ItemInfo> clonedList = new LinkedList<>( items );
+	    LOG.warn( "Done cloning list of size: " + items.size() );
+
+            for (ItemInfo itemInfo : clonedList ) {
                 this.addItemToProperQueue(itemInfo, currentTime);
             } // FOR
         }

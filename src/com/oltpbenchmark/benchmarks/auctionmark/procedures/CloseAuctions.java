@@ -195,9 +195,9 @@ public class CloseAuctions extends Procedure {
                     sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
                     sb.append("(ui_u_id, ui_i_id, ui_i_u_id, ui_created)");
                     sb.append("VALUES(");
-                    sb.append(bidId);
-                    sb.append(", ");
                     sb.append(buyerId);
+                    sb.append(", ");
+                    sb.append(itemId);
                     sb.append(", ");
                     sb.append(sellerId);
                     sb.append(", '");

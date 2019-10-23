@@ -56,8 +56,8 @@ public abstract class AuctionMarkConstants {
      * How often to execute CLOSE_AUCTIONS in virtual seconds
      * @see AuctionMarkConstants.TIME_SCALE_FACTOR
      */
-    //public static final long CLOSE_AUCTIONS_INTERVAL = 12000l; // Every 20 seconds
-    public static final long CLOSE_AUCTIONS_INTERVAL = 5000l; // Every 5 seconds
+    public static final long CLOSE_AUCTIONS_INTERVAL = 12000l; // Every 20 seconds
+    //public static final long CLOSE_AUCTIONS_INTERVAL = 5000l; // Every 5 seconds
     
     /**
      * If set to true, the CloseAuctions transactions will be a executed
