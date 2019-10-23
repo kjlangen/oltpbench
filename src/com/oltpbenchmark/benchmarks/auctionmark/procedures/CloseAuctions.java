@@ -185,7 +185,7 @@ public class CloseAuctions extends Procedure {
 		    }
 
 		    if( maxBidResults.get(0).get("ib_buyer_id") instanceof Long ) {
-			    buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
+			    buyerId = (Long) maxBidResults.get(0).get("ib_buyer_id");
 		    } else {
 			    buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
 		    }
