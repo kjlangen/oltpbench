@@ -161,21 +161,22 @@ public class CloseAuctions extends Procedure {
                 // We'll also insert a new USER_ITEM record as needed
                 // We have to do this extra step because H-Store doesn't have good support in the
                 // query optimizer for LEFT OUTER JOINs
-                if (numBids > 0) {
-                    waiting_ctr++;
+		sb = new StringBuilder();
+		sb.append("SELECT imb_ib_id, ib_buyer_id");
+		sb.append(" FROM ");
+		sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
+		sb.append(", ");
+		sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
+		sb.append(" WHERE imb_i_id = ");
+		sb.append(itemId);
+		sb.append(" AND imb_u_id = ");
+		sb.append(sellerId);
+		sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id");
+		maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
+		
+		if( !maxBidResults.isEmpty() ) {
 
-                    sb = new StringBuilder();
-                    sb.append("SELECT imb_ib_id, ib_buyer_id");
-                    sb.append(" FROM ");
-                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_MAX_BID);
-                    sb.append(", ");
-                    sb.append(AuctionMarkConstants.TABLENAME_ITEM_BID);
-                    sb.append(" WHERE imb_i_id = ");
-                    sb.append(itemId);
-                    sb.append(" AND imb_u_id = ");
-                    sb.append(sellerId);
-                    sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id ");
-                    maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
+                    waiting_ctr++;
                     assert(maxBidResults != null);
                     
 		    if( maxBidResults.get( 0 ).get("imb_ib_id") instanceof Long ) {
