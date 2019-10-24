@@ -191,6 +191,20 @@ public class CloseAuctions extends Procedure {
 		};
 		output_rows.add(row);
 
+                sb = new StringBuilder();
+                sb.append("SELECT i_end_date");
+                sb.append(" FROM ");
+                sb.append(AuctionMarkConstants.TABLENAME_ITEM);
+                sb.append(" WHERE i_id = ");
+                sb.append(itemId);
+		sb.append( " AND i_end_date < '" );
+		sb.append( endTime );
+		sb.append( "'" );
+
+		tmpResults = RestQuery.restReadQuery(sb.toString(), clientId);
+
+		// Do something with this?
+
 	    } // for dueItems Table
 	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
 		    Map<String,Object> dueItemsRow = dueItemsTable.get( i );
