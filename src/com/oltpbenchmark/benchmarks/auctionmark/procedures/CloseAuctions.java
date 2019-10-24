@@ -107,6 +107,7 @@ public class CloseAuctions extends Procedure {
 
         List<Map<String, Object>> dueItemsTable = null;
         List<List<Map<String, Object>>> maxBidResults = new LinkedList<>();
+	List<List<Map<String,Object>>> endDateResults = new LinkedList<>();
 
         final List<Object[]> output_rows = new ArrayList<Object[]>();
         while (round-- > 0) {
@@ -174,9 +175,10 @@ public class CloseAuctions extends Procedure {
                 sb.append(sellerId);
                 sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id");
 		List<Map<String,Object>> tmpResults = RestQuery.restReadQuery(sb.toString(), clientId);
-                maxBidResults.add( tmpResults );
+		maxBidResults.add( tmpResults );
 
 		itemStatus = tmpResults.isEmpty() ? ItemStatus.CLOSED : ItemStatus.WAITING_FOR_PURCHASE;
+
 
 		Object row[] = new Object[] {
 			itemId,               // i_id
@@ -198,10 +200,11 @@ public class CloseAuctions extends Procedure {
                 sb.append(" WHERE i_id = ");
                 sb.append(itemId);
 		sb.append( " AND i_end_date < '" );
-		sb.append( endTime );
+		sb.append( currentTime );
 		sb.append( "'" );
 
-		tmpResults = RestQuery.restReadQuery(sb.toString(), clientId);
+		List<Map<String,Object>> tmpResults2 = RestQuery.restReadQuery(sb.toString(), clientId);
+		endDateResults.add( tmpResults2 );
 
 		// Do something with this?
 
@@ -209,6 +212,7 @@ public class CloseAuctions extends Procedure {
 	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
 		    Map<String,Object> dueItemsRow = dueItemsTable.get( i );
 		    List<Map<String,Object>> maxBidResultSet = maxBidResults.get( i );
+		    List<Map<String,Object>> endDateResultSet = endDateResults.get( i );
 
 		    long itemId;
 		    if( dueItemsRow.get("i_id") instanceof Long ) {
@@ -227,7 +231,7 @@ public class CloseAuctions extends Procedure {
 		    Long bidId = null;
 		    Long buyerId = null;
 		
-		    if( !maxBidResultSet.isEmpty() ) {
+		    if( !maxBidResultSet.isEmpty() && !endDateResultSet.isEmpty() ) {
 
 			    if( maxBidResultSet.get( 0 ).get("imb_ib_id") instanceof Long ) {
 				    bidId = (Long) maxBidResultSet.get(0).get("imb_ib_id");
@@ -274,23 +278,29 @@ public class CloseAuctions extends Procedure {
             sb.append(currentTime);
             sb.append("' WHERE i_id IN (");
             boolean isFirst = true;
-            for (Map<String, Object> dueItemsRow : dueItemsTable) {
-                long itemId;
-                if( dueItemsRow.get("i_id") instanceof Long ) {
-                    itemId = (Long) dueItemsRow.get("i_id");
-                } else {
-                    itemId = new Long( (Integer) dueItemsRow.get("i_id") );
-                }
-                if( !isFirst ) {
-                    sb.append( "," );
-                } else {
-                    isFirst = false;
-                }
-                sb.append( " " );
-                sb.append(itemId);
+	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
+		Map<String,Object> dueItemsRow = dueItemsTable.get(i);
+		List<Map<String,Object>> endDateResultSet = endDateResults.get(i);
+		if( !endDateResultSet.isEmpty() ) {
+			long itemId;
+			if( dueItemsRow.get("i_id") instanceof Long ) {
+			    itemId = (Long) dueItemsRow.get("i_id");
+			} else {
+			    itemId = new Long( (Integer) dueItemsRow.get("i_id") );
+			}
+			if( !isFirst ) {
+			    sb.append( "," );
+			} else {
+			    isFirst = false;
+			}
+			sb.append( " " );
+			sb.append(itemId);
+		}
             }
             sb.append( ")" );
-            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	    if( !isFirst ) {
+		    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+	    }
         } // FOR
 
         return (output_rows);
