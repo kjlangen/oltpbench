@@ -294,7 +294,7 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         super(benchmark, id);
         this.profile = new AuctionMarkProfile(benchmark, benchmark.getRandomGenerator());
         
-        boolean needCloseAuctions = (AuctionMarkConstants.CLOSE_AUCTIONS_ENABLE && id == 0);
+        boolean needCloseAuctions = (AuctionMarkConstants.CLOSE_AUCTIONS_ENABLE); //&& id == 0);
         this.closeAuctions_flag.set(needCloseAuctions);
         if (needCloseAuctions) {
             this.closeAuctions_checker = new CloseAuctionsChecker(); 
@@ -468,8 +468,8 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         if (LOG.isDebugEnabled())
             LOG.debug("Executing " + proc);
         Timestamp benchmarkTimes[] = this.getTimestampParameterArray();
-        Timestamp startTime = profile.getLastCloseAuctionsTime();
-        Timestamp endTime = profile.updateAndGetLastCloseAuctionsTime();
+        Timestamp startTime = profile.getAndUpdateLastCloseAuctionsTime();
+        Timestamp endTime = profile.getAndUpdateLastCloseAuctionsTime();
 	LOG.warn( "Got START time: " + startTime );
 	LOG.warn( "Got END time: " + endTime );
         

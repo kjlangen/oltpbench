@@ -180,7 +180,7 @@ public class AuctionMarkProfile {
     /**
      * The last time that we called CHECK_WINNING_BIDS on this client
      */
-    private transient final Timestamp lastCloseAuctionsTime = new Timestamp(0);
+    private static final Timestamp lastCloseAuctionsTime = new Timestamp(0);
     /**
      * When this client started executing
      */
@@ -528,11 +528,24 @@ public class AuctionMarkProfile {
     }
 
     public synchronized Timestamp updateAndGetLastCloseAuctionsTime() {
-        this.getScaledCurrentTimestamp(this.lastCloseAuctionsTime);
-        return (Timestamp) this.lastCloseAuctionsTime.clone();
+	synchronized( AuctionMarkProfile.class ) {
+		this.getScaledCurrentTimestamp(this.lastCloseAuctionsTime);
+		return (Timestamp) this.lastCloseAuctionsTime.clone();
+	}
     }
+
+    public synchronized Timestamp getAndUpdateLastCloseAuctionsTime() {
+	synchronized( AuctionMarkProfile.class ) {
+		Timestamp tmp = (Timestamp) AuctionMarkProfile.lastCloseAuctionsTime.clone();
+		this.getScaledCurrentTimestamp(AuctionMarkProfile.lastCloseAuctionsTime);
+		return tmp;
+	}
+    }
+
     public Timestamp getLastCloseAuctionsTime() {
-        return (Timestamp) this.lastCloseAuctionsTime.clone();
+	synchronized( AuctionMarkProfile.class ) {
+		return (Timestamp) AuctionMarkProfile.lastCloseAuctionsTime.clone();
+	}
     }
     public boolean hasLastCloseAuctionsTime() {
         return (this.lastCloseAuctionsTime.getTime() != 0);
