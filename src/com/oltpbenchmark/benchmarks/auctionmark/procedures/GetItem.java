@@ -65,8 +65,8 @@ public class GetItem extends Procedure {
     public Object[][] run(Connection conn, Timestamp benchmarkTimes[],
                           long item_id, long seller_id, int clientId) throws SQLException {
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ");
-        sb.append(AuctionMarkConstants.ITEM_COLUMNS_STR);
+        sb.append("SELECT");
+	sb.append( " i_u_id, i_name, i_current_price, i_num_bids, i_end_date, i_status" );
         sb.append(" FROM ");
         sb.append(AuctionMarkConstants.TABLENAME_ITEM);
         sb.append(" WHERE i_id = ");
@@ -79,11 +79,12 @@ public class GetItem extends Procedure {
         }
         Object item_row[] = new Object[AuctionMarkConstants.ITEM_COLUMNS.length];
 
-        for (int i = 0; i < item_row.length; i++) {
+	item_row[0] = (Object) new Long( item_id );
+        for (int i = 1; i < item_row.length; i++) {
             item_row[i] = item_results.get(0).get(AuctionMarkConstants.ITEM_COLUMNS[i]);
         }
         
-        String user_columns = "u_id, u_rating, u_created, u_sattr0, u_sattr1, u_sattr2, u_sattr3, u_sattr4, r_name";
+        String user_columns = "u_rating, u_created, u_sattr0, u_sattr1, u_sattr2, u_sattr3, u_sattr4, r_name";
         sb = new StringBuilder();
         sb.append("SELECT ");
         sb.append(user_columns);
@@ -101,9 +102,10 @@ public class GetItem extends Procedure {
             throw new UserAbortException("Invalid user id " + seller_id);
         }
         String[] user_columns_arr = user_columns.split(", ");
-        user_row = new Object[user_columns_arr.length];
+        user_row = new Object[user_columns_arr.length+1];
+	user_row[0] = seller_id;
         for (int i = 0; i < user_columns_arr.length; i++) {
-            user_row[i] = user_results.get(0).get(user_columns_arr[i]);
+            user_row[i+1] = user_results.get(0).get(user_columns_arr[i]);
         }
         
         return (new Object[][]{ item_row, user_row });

@@ -23,6 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -105,7 +106,7 @@ public class CloseAuctions extends Procedure {
         long updated = -1;
 
         List<Map<String, Object>> dueItemsTable = null;
-        List<Map<String, Object>> maxBidResults = null;
+        List<List<Map<String, Object>>> maxBidResults = new LinkedList<>();
 
         final List<Object[]> output_rows = new ArrayList<Object[]>();
         while (round-- > 0) {
@@ -172,74 +173,92 @@ public class CloseAuctions extends Procedure {
                 sb.append(" AND imb_u_id = ");
                 sb.append(sellerId);
                 sb.append(" AND ib_id = imb_ib_id AND ib_i_id = imb_i_id AND ib_u_id = imb_u_id");
-                maxBidResults = RestQuery.restReadQuery(sb.toString(), clientId);
+		List<Map<String,Object>> tmpResults = RestQuery.restReadQuery(sb.toString(), clientId);
+                maxBidResults.add( tmpResults );
+
+		itemStatus = tmpResults.isEmpty() ? ItemStatus.CLOSED : ItemStatus.WAITING_FOR_PURCHASE;
+
+		Object row[] = new Object[] {
+			itemId,               // i_id
+				sellerId,             // i_u_id
+				i_name,               // i_name
+				currentPrice,         // i_current_price
+				numBids,              // i_num_bids
+				endDate.getTime(),              // i_end_date
+				itemStatus.ordinal(), // i_status
+				bidId,                // imb_ib_id
+				buyerId               // ib_buyer_id
+		};
+		output_rows.add(row);
+
+	    } // for dueItems Table
+	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
+		    Map<String,Object> dueItemsRow = dueItemsTable.get( i );
+		    List<Map<String,Object>> maxBidResultSet = maxBidResults.get( i );
+
+		    long itemId;
+		    if( dueItemsRow.get("i_id") instanceof Long ) {
+			    itemId = (Long) dueItemsRow.get("i_id");
+		    } else {
+			    itemId = new Long( (Integer) dueItemsRow.get("i_id") );
+		    }
+		    long sellerId;
+		    if( dueItemsRow.get("i_u_id") instanceof Long ) {
+			    sellerId = (Long) dueItemsRow.get("i_u_id");
+		    } else {
+			    sellerId = new Long( (Integer) dueItemsRow.get("i_u_id") );
+		    }
+		    double currentPrice = (double)dueItemsRow.get("i_current_price");
+
+		    Long bidId = null;
+		    Long buyerId = null;
 		
-                if( !maxBidResults.isEmpty() ) {
+		    if( !maxBidResultSet.isEmpty() ) {
 
-                    waiting_ctr++;
-                    assert(maxBidResults != null);
-                    
-                    if( maxBidResults.get( 0 ).get("imb_ib_id") instanceof Long ) {
-                        bidId = (Long) maxBidResults.get(0).get("imb_ib_id");
-                    } else { 
-                        bidId = new Long( (Integer) maxBidResults.get(0).get("imb_ib_id") );
-                    }
+			    if( maxBidResultSet.get( 0 ).get("imb_ib_id") instanceof Long ) {
+				    bidId = (Long) maxBidResultSet.get(0).get("imb_ib_id");
+			    } else { 
+				    bidId = new Long( (Integer) maxBidResultSet.get(0).get("imb_ib_id") );
+			    }
 
-                    if( maxBidResults.get(0).get("ib_buyer_id") instanceof Long ) {
-                        buyerId = (Long) maxBidResults.get(0).get("ib_buyer_id");
-                    } else {
-                        buyerId = new Long( (Integer) maxBidResults.get(0).get("ib_buyer_id") );
-                    }
+			    if( maxBidResultSet.get(0).get("ib_buyer_id") instanceof Long ) {
+				    buyerId = (Long) maxBidResultSet.get(0).get("ib_buyer_id");
+			    } else {
+				    buyerId = new Long( (Integer) maxBidResultSet.get(0).get("ib_buyer_id") );
+			    }
 
-                    sb = new StringBuilder();
-                    sb.append("INSERT INTO ");
-                    sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
-                    sb.append("(ui_u_id, ui_i_id, ui_i_u_id, ui_created)");
-                    sb.append("VALUES(");
-                    sb.append(buyerId);
-                    sb.append(", ");
-                    sb.append(itemId);
-                    sb.append(", ");
-                    sb.append(sellerId);
-                    sb.append(", '");
-                    sb.append(currentTime);
-                    sb.append("')");
-                    try {
-                        updated = RestQuery.restOtherQuery(sb.toString(), clientId);
-                    } catch( Exception e ) {
-                        assert(updated == 1);
-                    }
-                    itemStatus = ItemStatus.WAITING_FOR_PURCHASE;
+			    sb = new StringBuilder();
+			    sb.append("INSERT INTO ");
+			    sb.append(AuctionMarkConstants.TABLENAME_USERACCT_ITEM);
+			    sb.append("(ui_u_id, ui_i_id, ui_i_u_id, ui_created)");
+			    sb.append("VALUES(");
+			    sb.append(buyerId);
+			    sb.append(", ");
+			    sb.append(itemId);
+			    sb.append(", ");
+			    sb.append(sellerId);
+			    sb.append(", '");
+			    sb.append(currentTime);
+			    sb.append("')");
+			    try {
+				    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
+			    } catch( Exception e ) {
+				    assert(updated == 1);
+			    }
 
-                }
-                // No bid on this item - set status to CLOSED
-                else {
-                    closed_ctr++;
-                    itemStatus = ItemStatus.CLOSED;
-                }
-                
-                Object row[] = new Object[] {
-                        itemId,               // i_id
-                        sellerId,             // i_u_id
-                        i_name,               // i_name
-                        currentPrice,         // i_current_price
-                        numBids,              // i_num_bids
-                        endDate.getTime(),              // i_end_date
-                        itemStatus.ordinal(), // i_status
-                        bidId,                // imb_ib_id
-                        buyerId               // ib_buyer_id
-                };
-                output_rows.add(row);
-            } // WHILE
+		    }
+		    // No bid on this item - set status to CLOSED
+
+	    } // for dueItems/maxBids
 
             sb = new StringBuilder();
             sb.append("UPDATE ");
             sb.append(AuctionMarkConstants.TABLENAME_ITEM);
             sb.append(" SET i_status = (CASE");
-            sb.append(" WHEN i_num_bids > 0 THEN 3 ELSE 4)," );
-            sb.append(" i_updated = ");
+            sb.append(" WHEN i_num_bids > 0 THEN 2 ELSE 3 END)," );
+            sb.append(" i_updated = '");
             sb.append(currentTime);
-            sb.append(" WHERE i_id IN (");
+            sb.append("' WHERE i_id IN (");
             boolean isFirst = true;
             for (Map<String, Object> dueItemsRow : dueItemsTable) {
                 long itemId;
@@ -257,10 +276,8 @@ public class CloseAuctions extends Procedure {
                 sb.append(itemId);
             }
             sb.append( ")" );
+            updated = RestQuery.restOtherQuery(sb.toString(), clientId);
         } // FOR
-
-        if (debug)
-            LOG.debug(String.format("Updated Auctions - Closed=%d / Waiting=%d", closed_ctr, waiting_ctr));
 
         return (output_rows);
     }
