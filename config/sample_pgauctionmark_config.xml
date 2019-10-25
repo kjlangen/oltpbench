@@ -4,8 +4,8 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://54.149.44.3:5432/auctionmark</DBUrl>
-    <DBRestHost>54.84.246.8</DBRestHost>
+    <DBUrl>jdbc:postgresql://52.42.225.123:5432/auctionmark</DBUrl>
+    <DBRestHost>100.24.237.0</DBRestHost>
     <username>kronos</username>
     <password>kronos</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
