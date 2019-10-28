@@ -206,11 +206,10 @@ public class CloseAuctions extends Procedure {
 		};
 		output_rows.add(row);
 
-		if( !tmpResults.isEmpty() ) {
-
+		/*
 			// Retrieve the feedback for the buying user from the last 30 days
 			sb = new StringBuilder();
-			sb.append( "SELECT uf_u_id, uf_rating FROM " );
+			sb.append( "SELECT AVG(uf_rating) AS av FROM " );
 			sb.append( AuctionMarkConstants.TABLENAME_USERACCT_FEEDBACK );
 			sb.append( " WHERE uf_u_id = " );
 			sb.append( sellerId );
@@ -220,9 +219,9 @@ public class CloseAuctions extends Procedure {
 			sb.append( "'" );
 
 			List<Map<String,Object>> tmpResults2 = RestQuery.restReadQuery(sb.toString(), clientId);
+			*/
 
 			// Do something with this?
-		}
 
 	    } // for dueItems Table
 	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
@@ -247,7 +246,7 @@ public class CloseAuctions extends Procedure {
 		    Long bidId = null;
 		    Long buyerId = null;
 		
-		    if( !maxBidResultSet.isEmpty() /*&& !endDateResultSet.isEmpty() */ ) {
+		    if( !maxBidResultSet.isEmpty() && bidId != null /*&& !endDateResultSet.isEmpty() */ ) {
 
 			    if( maxBidResultSet.get( 0 ).get("imb_ib_id") instanceof Long ) {
 				    bidId = (Long) maxBidResultSet.get(0).get("imb_ib_id");
@@ -313,7 +312,9 @@ public class CloseAuctions extends Procedure {
 			sb.append(itemId);
 		//}
             }
-            sb.append( ")" );
+            sb.append( ") AND i_end_date < '" );
+	    sb.append( currentTime );
+	    sb.append( "'" );
 	    if( !isFirst ) {
 		    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
 	    }
