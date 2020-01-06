@@ -107,7 +107,7 @@ public class CloseAuctions extends Procedure {
 
         List<Map<String, Object>> dueItemsTable = null;
         List<List<Map<String, Object>>> maxBidResults = new LinkedList<>();
-	List<List<Map<String,Object>>> endDateResults = new LinkedList<>();
+	//List<List<Map<String,Object>>> endDateResults = new LinkedList<>();
 
         final List<Object[]> output_rows = new ArrayList<Object[]>();
         while (round-- > 0) {
@@ -179,6 +179,19 @@ public class CloseAuctions extends Procedure {
 
 		itemStatus = tmpResults.isEmpty() ? ItemStatus.CLOSED : ItemStatus.WAITING_FOR_PURCHASE;
 
+		if( !tmpResults.isEmpty() ) {
+			Map<String,Object> row = tmpResults.get( 0 );
+			if( row.get( "imb_ib_id" ) instanceof Long ) {
+				bidId = (Long) row.get( "imb_ib_id" );
+			} else {
+				bidId = new Long( (Integer) row.get( "imb_ib_id" ) );
+			}
+			if( row.get( "ib_buyer_id" ) instanceof Long ) {
+				buyerId = (Long) row.get( "ib_buyer_id" );
+			} else {
+				buyerId = new Long( (Integer) row.get( "ib_buyer_id" ) );
+			}
+		}
 
 		Object row[] = new Object[] {
 			itemId,               // i_id
@@ -193,26 +206,28 @@ public class CloseAuctions extends Procedure {
 		};
 		output_rows.add(row);
 
-                sb = new StringBuilder();
-                sb.append("SELECT i_end_date");
-                sb.append(" FROM ");
-                sb.append(AuctionMarkConstants.TABLENAME_ITEM);
-                sb.append(" WHERE i_id = ");
-                sb.append(itemId);
-		sb.append( " AND i_end_date < '" );
-		sb.append( currentTime );
-		sb.append( "'" );
+		/*
+			// Retrieve the feedback for the buying user from the last 30 days
+			sb = new StringBuilder();
+			sb.append( "SELECT AVG(uf_rating) AS av FROM " );
+			sb.append( AuctionMarkConstants.TABLENAME_USERACCT_FEEDBACK );
+			sb.append( " WHERE uf_u_id = " );
+			sb.append( sellerId );
+			sb.append( " AND uf_date > '" );
+			Timestamp thirtyDays = new Timestamp(currentTime.getTime() - 2592000000L);
+			sb.append( thirtyDays );
+			sb.append( "'" );
 
-		List<Map<String,Object>> tmpResults2 = RestQuery.restReadQuery(sb.toString(), clientId);
-		endDateResults.add( tmpResults2 );
+			List<Map<String,Object>> tmpResults2 = RestQuery.restReadQuery(sb.toString(), clientId);
+			*/
 
-		// Do something with this?
+			// Do something with this?
 
 	    } // for dueItems Table
 	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
 		    Map<String,Object> dueItemsRow = dueItemsTable.get( i );
 		    List<Map<String,Object>> maxBidResultSet = maxBidResults.get( i );
-		    List<Map<String,Object>> endDateResultSet = endDateResults.get( i );
+		    //List<Map<String,Object>> endDateResultSet = endDateResults.get( i );
 
 		    long itemId;
 		    if( dueItemsRow.get("i_id") instanceof Long ) {
@@ -231,7 +246,7 @@ public class CloseAuctions extends Procedure {
 		    Long bidId = null;
 		    Long buyerId = null;
 		
-		    if( !maxBidResultSet.isEmpty() && !endDateResultSet.isEmpty() ) {
+		    if( !maxBidResultSet.isEmpty() && bidId != null /*&& !endDateResultSet.isEmpty() */ ) {
 
 			    if( maxBidResultSet.get( 0 ).get("imb_ib_id") instanceof Long ) {
 				    bidId = (Long) maxBidResultSet.get(0).get("imb_ib_id");
@@ -280,8 +295,8 @@ public class CloseAuctions extends Procedure {
             boolean isFirst = true;
 	    for( int i = 0; i < dueItemsTable.size(); i++ ) {
 		Map<String,Object> dueItemsRow = dueItemsTable.get(i);
-		List<Map<String,Object>> endDateResultSet = endDateResults.get(i);
-		if( !endDateResultSet.isEmpty() ) {
+		//List<Map<String,Object>> endDateResultSet = endDateResults.get(i);
+		//if( !endDateResultSet.isEmpty() ) {
 			long itemId;
 			if( dueItemsRow.get("i_id") instanceof Long ) {
 			    itemId = (Long) dueItemsRow.get("i_id");
@@ -295,9 +310,11 @@ public class CloseAuctions extends Procedure {
 			}
 			sb.append( " " );
 			sb.append(itemId);
-		}
+		//}
             }
-            sb.append( ")" );
+            sb.append( ") AND i_end_date < '" );
+	    sb.append( currentTime );
+	    sb.append( "'" );
 	    if( !isFirst ) {
 		    updated = RestQuery.restOtherQuery(sb.toString(), clientId);
 	    }

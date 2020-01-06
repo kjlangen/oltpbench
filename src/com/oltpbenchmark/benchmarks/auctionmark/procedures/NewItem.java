@@ -244,7 +244,7 @@ public class NewItem extends Procedure {
         sb.append(", '");
         sb.append(name);
         sb.append("', '");
-        sb.append(description);
+        sb.append( description.replaceAll("'", "" ) );
         sb.append("', '");
         sb.append(attributes);
         sb.append("', ");

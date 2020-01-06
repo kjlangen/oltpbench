@@ -51,6 +51,7 @@ import com.oltpbenchmark.benchmarks.auctionmark.util.ItemInfo;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemStatus;
 import com.oltpbenchmark.benchmarks.auctionmark.util.ItemCommentResponse;
 import com.oltpbenchmark.benchmarks.auctionmark.util.UserId;
+import com.oltpbenchmark.util.RandomGenerator;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.SQLUtil;
 
@@ -73,8 +74,13 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
     // CLOSE_AUCTIONS CHECKER
     // --------------------------------------------------------------------
     private class CloseAuctionsChecker extends Thread {
-        {
+	private RandomGenerator rng;
+
+	public CloseAuctionsChecker( RandomGenerator rng ) {
+	    super();
             this.setDaemon(true);
+	    this.rng = rng;
+
         }
         @Override
         public void run() {
@@ -87,7 +93,9 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
             Procedure proc = AuctionMarkWorker.this.getProcedure(txnType);
             assert(proc != null);
             
-            long sleepTime = AuctionMarkConstants.CLOSE_AUCTIONS_INTERVAL / AuctionMarkConstants.TIME_SCALE_FACTOR;
+            long sleepTime = AuctionMarkConstants.CLOSE_AUCTIONS_INTERVAL / AuctionMarkConstants.TIME_SCALE_FACTOR + 
+		    (rng.number(5,10)-5); //jitter
+	    LOG.warn( String.format("Sleeping for %d seconds", sleepTime) );
             while (true) {
                 if (LOG.isDebugEnabled())
                     LOG.debug(String.format("Sleeping for %d seconds", sleepTime));
@@ -295,9 +303,9 @@ public class AuctionMarkWorker extends Worker<AuctionMarkBenchmark> {
         this.profile = new AuctionMarkProfile(benchmark, benchmark.getRandomGenerator());
         
         boolean needCloseAuctions = (AuctionMarkConstants.CLOSE_AUCTIONS_ENABLE); //&& id == 0);
-        this.closeAuctions_flag.set(needCloseAuctions);
+        this.closeAuctions_flag.set(false);
         if (needCloseAuctions) {
-            this.closeAuctions_checker = new CloseAuctionsChecker(); 
+            this.closeAuctions_checker = new CloseAuctionsChecker( profile.rng ); 
         } else {
             this.closeAuctions_checker = null;
         }
